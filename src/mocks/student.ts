@@ -212,7 +212,7 @@ const questionBank: Omit<ExamQuestion, "id">[] = [
 ];
 
 export const examQuestions: ExamQuestion[] = Array.from({ length: 20 }, (_, i) => {
-  const base = questionBank[i % questionBank.length];
+  const base = questionBank[i % questionBank.length]!;
   return { ...base, id: `q${i + 1}` };
 });
 
