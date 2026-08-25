@@ -1,5 +1,72 @@
 # Alianza Contigo Learn
 
+Plataforma LMS Alianza Contigo organizada como monorepo. Incluye una SPA en React, una API Flask por capas y PostgreSQL.
+
+## Arquitectura
+
+```text
+frontend/   React + TypeScript + Vite + React Router + Tailwind + shadcn/ui
+backend/    Flask + SQLAlchemy + Flask-Migrate/Alembic + arquitectura por capas
+postgres    PostgreSQL 17 administrado por Docker Compose
+```
+
+El backend aplica inyección de dependencias y patrón Repository:
+
+- `domain/`: entidades y contratos sin dependencia de Flask o SQLAlchemy.
+- `application/`: casos de uso y servicios de aplicación.
+- `infrastructure/`: modelos y adaptadores de persistencia.
+- `presentation/`: endpoints HTTP y serialización.
+- `migrations/`: historial versionado de Alembic.
+
+## Desarrollo con Docker y hot reload
+
+```bash
+docker compose up --build
+```
+
+Servicios disponibles:
+
+- Frontend: `http://localhost:5173`.
+- Backend: `http://localhost:5000/api/v1/health`.
+- PostgreSQL: `localhost:5433` (internamente usa `5432`).
+
+El código de `frontend/` y `backend/` se monta dentro de sus contenedores. Vite usa HMR y Flask reinicia el servidor automáticamente al guardar cambios.
+
+## Desarrollo local
+
+```bash
+cd frontend
+bun install
+bun run dev
+```
+
+Para ejecutar únicamente el backend fuera de Docker:
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+flask --app wsgi:app db upgrade
+flask --app wsgi:app run --debug
+```
+
+## Compilación de producción
+
+```bash
+docker build --target production -t alianza-contigo-frontend ./frontend
+docker run --rm -p 8080:80 alianza-contigo-frontend
+```
+
+Nginx incluye fallback a `index.html` para soportar todas las rutas de React Router.
+
+## Rutas principales del prototipo
+
+- Portal público: `/`, `/courses`, `/courses/:slug`, `/nosotros`, `/contacto`.
+- Autenticación: `/login`, `/register`.
+- Estudiante: `/app`, `/app/courses`, `/app/classroom/gestor-empresarial`, `/app/exam/gestor-empresarial`, `/app/certificates`, `/app/profile`.
+- Administración y docencia: `/admin`, `/admin/courses`, `/admin/students`, `/admin/evaluations`, `/admin/enrollments`.
+
 Prompt para Lovable — Plataforma E-Learning Alianza Contigo
 
 Diseña y construye el prototipo frontend completo de una plataforma E-Learning/LMS llamada “Alianza Contigo – Educación Continua”.
