@@ -189,3 +189,33 @@
   border-radius: 999px;
   background: linear-gradient(90deg, var(--gold), var(--gold-light));
 }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  body.certificate-print-mode * {
+    visibility: hidden !important;
+  }
+
+  body.certificate-print-mode .certificate-print-target,
+  body.certificate-print-mode .certificate-print-target * {
+    visibility: visible !important;
+  }
+
+  body.certificate-print-mode .certificate-print-target {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: white;
+  }
+
+  body.certificate-print-mode .certificate-sheet {
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+}

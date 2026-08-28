@@ -1,8 +1,74 @@
 from dataclasses import asdict
 
-from flask import Blueprint, jsonify
+import os
+import re
+import uuid
+from decimal import Decimal, InvalidOperation
+
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
+from werkzeug.utils import secure_filename
+from flask_jwt_extended import get_jwt_identity
 
 from app.application.services.course_service import CourseService
+from app.extensions import db
+from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, UserModel
+from app.presentation.auth_api import role_required
+
+ALLOWED_UPLOADS = {"pdf", "png", "jpg", "jpeg", "webp", "mp4", "webm"}
+
+
+def serialize_lesson(lesson):
+    return {"id": str(lesson.id), "title": lesson.title, "type": lesson.lesson_type, "content": lesson.content, "mediaUrl": lesson.media_url, "durationMinutes": lesson.duration_minutes, "isPreview": lesson.is_preview, "position": lesson.position}
+
+
+def serialize_module(module):
+    return {"id": str(module.id), "title": module.title, "description": module.description, "position": module.position, "lessons": [serialize_lesson(item) for item in module.lessons]}
+
+
+def serialize_exam(exam, include_answers=False):
+    if not exam:
+        return None
+    questions = []
+    for item in exam.questions:
+        question = {"id": str(item.id), "prompt": item.prompt, "type": item.question_type, "options": item.options, "points": item.points, "position": item.position}
+        if include_answers:
+            question["correctAnswers"] = item.correct_answers
+        questions.append(question)
+    return {"id": str(exam.id), "title": exam.title, "instructions": exam.instructions, "timeLimitMinutes": exam.time_limit_minutes, "attemptsAllowed": exam.attempts_allowed, "passingScore": exam.passing_score, "questions": questions}
+
+
+def serialize_course(course, detailed=False, include_answers=False):
+    data = {"id": str(course.id), "slug": course.slug, "name": course.name, "shortDescription": course.short_description, "fullDescription": course.full_description, "coverUrl": course.cover_url, "modality": course.modality, "duration": course.duration, "certification": course.certification, "endorsement": course.endorsement, "price": float(course.price), "discountPercent": course.discount_percent, "finalPrice": round(float(course.price) * (100 - course.discount_percent) / 100, 2), "status": course.status, "modulesCount": len(course.modules), "lessonsCount": sum(len(item.lessons) for item in course.modules), "hasFinalExam": course.final_exam is not None and len(course.final_exam.questions) > 0}
+    if detailed:
+        data["modules"] = [serialize_module(item) for item in course.modules]
+        data["finalExam"] = serialize_exam(course.final_exam, include_answers)
+    return data
+
+
+def ordered_course_lessons(course):
+    return [lesson for module in course.modules for lesson in module.lessons]
+
+
+def current_enrollment_progress(enrollment):
+    if any(attempt.status == "PASSED" for attempt in enrollment.exam_attempts):
+        return 100
+    total = len(ordered_course_lessons(enrollment.course))
+    return round(len(enrollment.lesson_progress) * 90 / total) if total else 90
+
+
+def current_exam_status(enrollment):
+    if any(attempt.status == "PASSED" for attempt in enrollment.exam_attempts):
+        return "PASSED"
+    if any(attempt.status == "PENDING_REVIEW" for attempt in enrollment.exam_attempts):
+        return "PENDING_REVIEW"
+    if enrollment.exam_attempts:
+        return enrollment.exam_attempts[-1].status
+    return "NOT_STARTED"
+
+
+def slugify(value):
+    value = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+    return value or f"curso-{uuid.uuid4().hex[:8]}"
 
 
 def create_api_blueprint(course_service: CourseService) -> Blueprint:
@@ -14,13 +80,205 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
 
     @api.get("/courses")
     def list_courses():
-        return jsonify([asdict(course) for course in course_service.list_courses()])
+        rows = CourseModel.query.filter_by(status="ACTIVO").order_by(CourseModel.updated_at.desc()).all()
+        return jsonify([serialize_course(row) for row in rows])
+
+    @api.get("/courses/manage")
+    @role_required("admin", "teacher")
+    def manage_courses():
+        rows = CourseModel.query.order_by(CourseModel.updated_at.desc()).all()
+        return jsonify([serialize_course(row) for row in rows])
 
     @api.get("/courses/<slug>")
     def get_course(slug: str):
-        course = course_service.get_course(slug)
+        course = CourseModel.query.filter_by(slug=slug, status="ACTIVO").first()
         if course is None:
             return jsonify({"error": "course_not_found", "message": "Programa no encontrado"}), 404
-        return jsonify(asdict(course))
+        return jsonify(serialize_course(course, detailed=True))
+
+    @api.get("/courses/<slug>/author")
+    @role_required("admin")
+    def get_course_for_author(slug: str):
+        course = CourseModel.query.filter_by(slug=slug).first()
+        if course is None:
+            return jsonify({"error": "course_not_found", "message": "Programa no encontrado"}), 404
+        return jsonify(serialize_course(course, detailed=True, include_answers=True))
+
+    @api.post("/courses")
+    @role_required("admin")
+    def create_course():
+        data = request.get_json(silent=True) or {}
+        if not (data.get("name") or "").strip():
+            return jsonify({"message": "El nombre del curso es obligatorio."}), 400
+        if data.get("status") == "ACTIVO":
+            return jsonify({"message": "Primero crea el curso, agrega al menos un módulo y configura su examen final antes de activarlo."}), 400
+        slug = slugify(data["name"])
+        base = slug
+        counter = 2
+        while CourseModel.query.filter_by(slug=slug).first():
+            slug = f"{base}-{counter}"
+            counter += 1
+        course = CourseModel(slug=slug, name=data["name"].strip(), short_description=(data.get("shortDescription") or "").strip(), full_description=data.get("fullDescription") or "", cover_url=data.get("coverUrl") or None, modality=data.get("modality") or "Virtual", duration=data.get("duration") or "A tu ritmo", certification=data.get("certification") or "Certificado de aprobación", endorsement=data.get("endorsement") or "", price=Decimal(str(data.get("price") or 0)), discount_percent=max(0, min(100, int(data.get("discountPercent") or 0))), status=data.get("status") if data.get("status") in {"ACTIVO", "CERRADO"} else "CERRADO")
+        db.session.add(course)
+        db.session.flush()
+        course.final_exam = FinalExamModel(title="Evaluación final", instructions="Completa la evaluación para finalizar el curso.")
+        db.session.commit()
+        return jsonify(serialize_course(course, True, True)), 201
+
+    @api.put("/courses/<slug>")
+    @role_required("admin")
+    def update_course(slug):
+        course = CourseModel.query.filter_by(slug=slug).first_or_404()
+        data = request.get_json(silent=True) or {}
+        for source, target in [("name", "name"), ("shortDescription", "short_description"), ("fullDescription", "full_description"), ("coverUrl", "cover_url"), ("modality", "modality"), ("duration", "duration"), ("certification", "certification"), ("endorsement", "endorsement")]:
+            if source in data:
+                setattr(course, target, data[source])
+        if "price" in data:
+            try:
+                course.price = max(Decimal("0"), Decimal(str(data["price"])))
+            except InvalidOperation:
+                return jsonify({"message": "El precio no es válido."}), 400
+        if "discountPercent" in data:
+            course.discount_percent = max(0, min(100, int(data["discountPercent"])))
+        if data.get("status") in {"ACTIVO", "CERRADO"}:
+            if data["status"] == "ACTIVO" and (not course.modules or not course.final_exam or not course.final_exam.questions):
+                return jsonify({"message": "Para activar el curso necesitas al menos un módulo y una pregunta en el examen final."}), 400
+            course.status = data["status"]
+        db.session.commit()
+        return jsonify(serialize_course(course, True, True))
+
+    @api.delete("/courses/<slug>")
+    @role_required("admin")
+    def delete_course(slug):
+        course = CourseModel.query.filter_by(slug=slug).first_or_404()
+        db.session.delete(course)
+        db.session.commit()
+        return "", 204
+
+    @api.put("/courses/<slug>/content")
+    @role_required("admin")
+    def save_content(slug):
+        course = CourseModel.query.filter_by(slug=slug).first_or_404()
+        modules = (request.get_json(silent=True) or {}).get("modules", [])
+        if course.status == "ACTIVO" and not modules:
+            return jsonify({"message": "Un curso activo debe conservar al menos un módulo."}), 400
+        course.modules.clear()
+        for module_index, module_data in enumerate(modules):
+            module = CourseModuleModel(title=(module_data.get("title") or f"Módulo {module_index + 1}").strip(), description=module_data.get("description") or "", position=module_index)
+            for lesson_index, lesson_data in enumerate(module_data.get("lessons", [])):
+                lesson_type = lesson_data.get("type") if lesson_data.get("type") in {"video", "text", "image", "pdf", "file"} else "text"
+                module.lessons.append(LessonModel(title=(lesson_data.get("title") or f"Lección {lesson_index + 1}").strip(), lesson_type=lesson_type, content=lesson_data.get("content") or "", media_url=lesson_data.get("mediaUrl") or None, duration_minutes=max(0, int(lesson_data.get("durationMinutes") or 0)), is_preview=bool(lesson_data.get("isPreview")), position=lesson_index))
+            course.modules.append(module)
+        db.session.commit()
+        return jsonify(serialize_course(course, True, True))
+
+    @api.put("/courses/<slug>/exam")
+    @role_required("admin")
+    def save_exam(slug):
+        course = CourseModel.query.filter_by(slug=slug).first_or_404()
+        data = request.get_json(silent=True) or {}
+        if not data.get("questions"):
+            return jsonify({"message": "El examen final debe tener al menos una pregunta."}), 400
+        exam = course.final_exam or FinalExamModel(course=course)
+        exam.title = data.get("title") or "Evaluación final"
+        exam.instructions = data.get("instructions") or ""
+        exam.time_limit_minutes = max(1, int(data.get("timeLimitMinutes") or 45))
+        exam.attempts_allowed = max(1, int(data.get("attemptsAllowed") or 1))
+        exam.passing_score = max(1, min(100, int(data.get("passingScore") or 70)))
+        exam.questions.clear()
+        for index, item in enumerate(data["questions"]):
+            if not (item.get("prompt") or "").strip() or len(item.get("options") or []) < 2 or not item.get("correctAnswers"):
+                return jsonify({"message": f"Completa la pregunta {index + 1}, sus opciones y respuesta correcta."}), 400
+            exam.questions.append(ExamQuestionModel(prompt=item["prompt"].strip(), question_type="single_choice", options=item["options"], correct_answers=item["correctAnswers"], points=max(1, int(item.get("points") or 1)), position=index))
+        db.session.commit()
+        return jsonify(serialize_exam(exam, True))
+
+    @api.post("/uploads")
+    @role_required("admin")
+    def upload_file():
+        uploaded = request.files.get("file")
+        if not uploaded or not uploaded.filename:
+            return jsonify({"message": "Selecciona un archivo."}), 400
+        extension = uploaded.filename.rsplit(".", 1)[-1].lower() if "." in uploaded.filename else ""
+        if extension not in ALLOWED_UPLOADS:
+            return jsonify({"message": "Formato no permitido. Usa PDF, imagen, MP4 o WebM."}), 400
+        is_video = extension in {"mp4", "webm"}
+        max_mb = current_app.config[
+            "MAX_VIDEO_UPLOAD_MB" if is_video else "MAX_DOCUMENT_UPLOAD_MB"
+        ]
+        if request.content_length and request.content_length > max_mb * 1024 * 1024:
+            return jsonify({"message": f"El archivo supera el límite de {max_mb} MB."}), 413
+        os.makedirs(current_app.config["UPLOAD_FOLDER"], exist_ok=True)
+        filename = f"{uuid.uuid4().hex}-{secure_filename(uploaded.filename)}"
+        uploaded.save(os.path.join(current_app.config["UPLOAD_FOLDER"], filename))
+        return jsonify({"url": f"/api/v1/uploads/{filename}"}), 201
+
+    @api.get("/uploads/<filename>")
+    def uploaded_file(filename):
+        return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+
+    @api.get("/courses/<slug>/teaching")
+    @role_required("teacher", "admin")
+    def teaching_course(slug):
+        course = CourseModel.query.filter_by(slug=slug).first_or_404()
+        enrollments = EnrollmentModel.query.filter_by(course_id=course.id).order_by(EnrollmentModel.enrolled_at.desc()).all()
+        return jsonify({"course": serialize_course(course), "students": [{"enrollmentId": str(item.id), "studentId": str(item.student.id), "name": f"{item.student.first_name} {item.student.last_name}", "email": item.student.email, "progressPercent": current_enrollment_progress(item), "examSubmittedAt": item.exam_submitted_at.isoformat() if item.exam_submitted_at else None, "examScore": float(item.exam_score) if item.exam_score is not None else None, "examStatus": current_exam_status(item), "teacherFeedback": item.teacher_feedback} for item in enrollments]})
+
+    @api.patch("/enrollments/<enrollment_id>/grade")
+    @role_required("teacher", "admin")
+    def grade_enrollment(enrollment_id):
+        return jsonify({"message": "Las calificaciones se calculan automáticamente. Usa la revisión del intento para registrar retroalimentación."}), 410
+
+    @api.get("/student/enrollments")
+    @role_required("student")
+    def student_enrollments():
+        student_id = uuid.UUID(get_jwt_identity())
+        rows = EnrollmentModel.query.filter_by(student_id=student_id).order_by(EnrollmentModel.enrolled_at.desc()).all()
+        return jsonify({"enrollments": [{"id": str(item.id), "course": serialize_course(item.course, detailed=True), "progressPercent": current_enrollment_progress(item), "completedLessonIds": [str(progress.lesson_id) for progress in item.lesson_progress], "examScore": float(item.exam_score) if item.exam_score is not None else None, "examStatus": current_exam_status(item), "completedAt": item.completed_at.isoformat() if item.completed_at else None, "enrolledAt": item.enrolled_at.isoformat()} for item in rows]})
+
+    @api.post("/student/enrollments/<enrollment_id>/lessons/<lesson_id>/complete")
+    @role_required("student")
+    def complete_lesson(enrollment_id, lesson_id):
+        try:
+            enrollment_uuid = uuid.UUID(enrollment_id)
+            lesson_uuid = uuid.UUID(lesson_id)
+        except ValueError:
+            return jsonify({"message": "La lección no es válida."}), 404
+        enrollment = db.session.get(EnrollmentModel, enrollment_uuid)
+        if not enrollment or enrollment.student_id != uuid.UUID(get_jwt_identity()):
+            return jsonify({"message": "No tienes acceso a esta matrícula."}), 404
+        ordered = ordered_course_lessons(enrollment.course)
+        ordered_ids = [lesson.id for lesson in ordered]
+        if lesson_uuid not in ordered_ids:
+            return jsonify({"message": "La lección no pertenece a este curso."}), 404
+        completed_ids = {progress.lesson_id for progress in enrollment.lesson_progress}
+        if lesson_uuid not in completed_ids:
+            first_pending = next((item_id for item_id in ordered_ids if item_id not in completed_ids), None)
+            if first_pending != lesson_uuid:
+                return jsonify({"message": "Completa primero el contenido anterior para desbloquear esta lección."}), 409
+            db.session.add(LessonProgressModel(enrollment_id=enrollment.id, lesson_id=lesson_uuid))
+            completed_ids.add(lesson_uuid)
+        enrollment.progress_percent = round(len(completed_ids) * 90 / len(ordered_ids)) if ordered_ids else 90
+        db.session.commit()
+        return jsonify({"message": "Lección completada.", "progressPercent": enrollment.progress_percent, "completedLessonIds": [str(item_id) for item_id in completed_ids]})
+
+    @api.get("/admin/students")
+    @role_required("admin")
+    def admin_students():
+        students = UserModel.query.filter_by(role="student").order_by(UserModel.created_at.desc()).all()
+        return jsonify({"students": [{**student.to_dict(), "createdAt": student.created_at.isoformat(), "coursesCount": EnrollmentModel.query.filter_by(student_id=student.id).count()} for student in students]})
+
+    @api.get("/admin/students/<student_id>")
+    @role_required("admin")
+    def admin_student_detail(student_id):
+        try:
+            student_uuid = uuid.UUID(student_id)
+        except ValueError:
+            return jsonify({"message": "Estudiante no encontrado."}), 404
+        student = db.session.get(UserModel, student_uuid)
+        if not student or student.role != "student":
+            return jsonify({"message": "Estudiante no encontrado."}), 404
+        rows = EnrollmentModel.query.filter_by(student_id=student.id).order_by(EnrollmentModel.enrolled_at.desc()).all()
+        return jsonify({"student": {**student.to_dict(), "createdAt": student.created_at.isoformat()}, "enrollments": [{"id": str(item.id), "course": serialize_course(item.course), "progressPercent": current_enrollment_progress(item), "examScore": float(item.exam_score) if item.exam_score is not None else None, "enrolledAt": item.enrolled_at.isoformat()} for item in rows]})
 
     return api

@@ -2,10 +2,8 @@ import {
   Award,
   BookOpen,
   ClipboardCheck,
-  FileBadge,
   GraduationCap,
   Home,
-  Settings,
   UserRound,
   Users,
   UserCheck,
@@ -24,7 +22,11 @@ export const adminNav = [
   { label: "Estudiantes", to: "/admin/students", icon: Users },
   { label: "Docentes", to: "/admin/teachers", icon: UserCheck },
   { label: "Evaluaciones", to: "/admin/evaluations", icon: ClipboardCheck },
-  { label: "Certificados", to: "/admin/certificates", icon: FileBadge },
-  { label: "Inscripciones", to: "/admin/enrollments", icon: GraduationCap },
-  { label: "Configuración", to: "/admin/settings", icon: Settings },
+  { label: "Pagos e ingresos", to: "/admin/enrollments", icon: GraduationCap },
+];
+
+export const teacherNav = [
+  { label: "Inicio", to: "/profesor", icon: Home },
+  { label: "Mis cursos", to: "/profesor/cursos", icon: BookOpen },
+  { label: "Estudiantes", to: "/profesor/estudiantes", icon: Users },
 ];

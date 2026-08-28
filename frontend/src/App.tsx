@@ -3,29 +3,28 @@ import { Landing } from "@/routes/index";
 import { CoursesPage } from "@/routes/courses.index";
 import { CourseDetail } from "@/routes/courses.$slug";
 import { AboutPage, ContactPage } from "@/pages/PublicInfoPages";
-import { LoginPage, RegisterPage } from "@/pages/AuthPages";
+import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from "@/pages/AuthPages";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { TeacherDashboard, TeacherSection } from "@/pages/TeacherPages";
+import { TeacherManagementPage } from "@/pages/TeacherManagementPage";
+import { TeacherCoursePage } from "@/pages/TeacherCoursePage";
+import { PaymentOrdersPage } from "@/pages/PaymentOrdersPage";
+import { RealCertificatesPage } from "@/pages/RealCertificatesPage";
+import { FinalExamPage } from "@/pages/FinalExamPage";
 import {
-  CertificatesPage,
-  ClassroomPage,
-  ExamPage,
-  ExamResultPage,
-  MyCoursesPage,
-  ProfilePage,
-  StudentDashboard,
-} from "@/pages/StudentPages";
+  RealClassroomPage,
+  RealMyCoursesPage,
+  RealProfilePage,
+  RealStudentDashboard,
+} from "@/pages/RealStudentPages";
+import { AdminDashboard } from "@/pages/AdminPages";
+import { AdminEvaluationsPage } from "@/pages/AdminEvaluationsPage";
+import { RealStudentDetail, RealStudentsPage } from "@/pages/RealAdminStudentsPage";
 import {
-  AdminCourses,
-  AdminDashboard,
-  CourseContent,
-  CourseForm,
-  EnrollmentsPage,
-  EvaluationBuilder,
-  EvaluationReview,
-  EvaluationsPage,
-  GenericAdminPage,
-  StudentDetail,
-  StudentsPage,
-} from "@/pages/AdminPages";
+  CourseAdminList,
+  CourseContentBuilder,
+  CourseDataForm,
+} from "@/pages/CourseManagementPages";
 
 export function App() {
   return (
@@ -37,29 +36,173 @@ export function App() {
       <Route path="/contacto" element={<ContactPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/olvide-mi-contrasena" element={<ForgotPasswordPage />} />
+      <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
+      <Route path="/acceso-administrativo" element={<LoginPage role="admin" />} />
+      <Route path="/acceso-profesores" element={<LoginPage role="teacher" />} />
 
-      <Route path="/app" element={<StudentDashboard />} />
-      <Route path="/app/courses" element={<MyCoursesPage />} />
-      <Route path="/app/classroom/:slug" element={<ClassroomPage />} />
-      <Route path="/app/exam/:slug" element={<ExamPage />} />
-      <Route path="/app/exam/:slug/result" element={<ExamResultPage />} />
-      <Route path="/app/certificates" element={<CertificatesPage />} />
-      <Route path="/app/profile" element={<ProfilePage />} />
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute role="student">
+            <RealStudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/courses"
+        element={
+          <ProtectedRoute role="student">
+            <RealMyCoursesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/classroom/:slug"
+        element={
+          <ProtectedRoute role="student">
+            <RealClassroomPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/exam/:slug"
+        element={
+          <ProtectedRoute role="student">
+            <FinalExamPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/certificates"
+        element={
+          <ProtectedRoute role="student">
+            <RealCertificatesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/profile"
+        element={
+          <ProtectedRoute role="student">
+            <RealProfilePage />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/courses" element={<AdminCourses />} />
-      <Route path="/admin/courses/new" element={<CourseForm />} />
-      <Route path="/admin/courses/:slug/edit" element={<CourseForm />} />
-      <Route path="/admin/courses/:slug/content" element={<CourseContent />} />
-      <Route path="/admin/courses/:slug/evaluation" element={<EvaluationBuilder />} />
-      <Route path="/admin/students" element={<StudentsPage />} />
-      <Route path="/admin/students/:id" element={<StudentDetail />} />
-      <Route path="/admin/teachers" element={<GenericAdminPage type="teachers" />} />
-      <Route path="/admin/evaluations" element={<EvaluationsPage />} />
-      <Route path="/admin/evaluations/:id" element={<EvaluationReview />} />
-      <Route path="/admin/certificates" element={<GenericAdminPage type="certificates" />} />
-      <Route path="/admin/enrollments" element={<EnrollmentsPage />} />
-      <Route path="/admin/settings" element={<GenericAdminPage type="settings" />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses"
+        element={
+          <ProtectedRoute role="admin">
+            <CourseAdminList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses/new"
+        element={
+          <ProtectedRoute role="admin">
+            <CourseDataForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses/:slug/edit"
+        element={
+          <ProtectedRoute role="admin">
+            <CourseDataForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses/:slug/content"
+        element={
+          <ProtectedRoute role="admin">
+            <CourseContentBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/students"
+        element={
+          <ProtectedRoute role="admin">
+            <RealStudentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/students/:id"
+        element={
+          <ProtectedRoute role="admin">
+            <RealStudentDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teachers"
+        element={
+          <ProtectedRoute role="admin">
+            <TeacherManagementPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/evaluations"
+        element={
+          <ProtectedRoute role="admin">
+            <AdminEvaluationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/enrollments"
+        element={
+          <ProtectedRoute role="admin">
+            <PaymentOrdersPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profesor"
+        element={
+          <ProtectedRoute role="teacher">
+            <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profesor/cursos"
+        element={
+          <ProtectedRoute role="teacher">
+            <CourseAdminList teacher />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profesor/cursos/:slug"
+        element={
+          <ProtectedRoute role="teacher">
+            <TeacherCoursePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profesor/estudiantes"
+        element={
+          <ProtectedRoute role="teacher">
+            <TeacherSection type="students" />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="*"

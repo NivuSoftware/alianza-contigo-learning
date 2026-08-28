@@ -27,8 +27,13 @@ class SqlAlchemyCourseRepository(CourseRepository):
             slug=row.slug,
             name=row.name,
             short_description=row.short_description,
+            full_description=row.full_description,
+            cover_url=row.cover_url,
             modality=row.modality,
             duration=row.duration,
             certification=row.certification,
+            endorsement=row.endorsement,
+            price=float(row.price),
+            discount_percent=row.discount_percent,
             status=row.status,
         )

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Award,
+  BookOpen,
   BadgeCheck,
   Clock3,
   GraduationCap,
@@ -12,7 +13,7 @@ import {
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { CourseCard } from "@/components/shared/CourseCard";
 import { Button } from "@/components/ui/button";
-import { courses } from "@/mocks/courses";
+import { usePublicCourses } from "@/hooks/use-public-courses";
 import heroImage from "@/assets/hero.jpg";
 
 const highlights = [
@@ -40,6 +41,7 @@ const pillars = [
 ];
 
 export function Landing() {
+  const { courses, loading } = usePublicCourses();
   return (
     <PublicLayout>
       {/* HERO */}
@@ -126,10 +128,23 @@ export function Landing() {
         </div>
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((c) => (
+          {loading &&
+            Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-[430px] animate-pulse rounded-2xl bg-muted" />
+            ))}
+          {courses.slice(0, 6).map((c) => (
             <CourseCard key={c.id} course={c} />
           ))}
         </div>
+        {!loading && courses.length === 0 && (
+          <div className="mt-10 rounded-xl bg-white p-8 text-center">
+            <BookOpen className="mx-auto h-8 w-8 text-gold" />
+            <p className="mt-3 font-medium text-navy">Próximamente nuevos programas</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Estamos preparando nuestra próxima oferta académica.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* CTA */}

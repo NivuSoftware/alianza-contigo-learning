@@ -11,7 +11,7 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       VITE_API_URL: /api/v1
-    command: bun run dev -- --host 0.0.0.0
+    command: sh -c "bun install --frozen-lockfile && bun run dev -- --host 0.0.0.0"
     depends_on:
       backend:
         condition: service_healthy
@@ -23,11 +23,32 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
+      - course_uploads:/app/uploads
     environment:
       FLASK_ENV: development
       FLASK_DEBUG: "1"
       DATABASE_URL: postgresql+psycopg://alianza:alianza@postgres:5432/alianza_contigo
       CORS_ORIGINS: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-development-only-change-me}
+      EMAIL_ADDRESS: ${EMAIL_ADDRESS:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      SMTP_SERVER: ${SMTP_SERVER:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      MAIL_SENDER: ${MAIL_SENDER:-Alianza Contigo}
+      MAIL_RECIPIENT: ${MAIL_RECIPIENT:-}
+      BANK_NAME: ${BANK_NAME:-Banco Pichincha}
+      BANK_ACCOUNT_TYPE: ${BANK_ACCOUNT_TYPE:-Cuenta corriente}
+      BANK_ACCOUNT_NUMBER: ${BANK_ACCOUNT_NUMBER:-0000000000}
+      BANK_ACCOUNT_HOLDER: ${BANK_ACCOUNT_HOLDER:-Alianza Contigo}
+      BANK_ACCOUNT_ID: ${BANK_ACCOUNT_ID:-0000000000}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-500}
+      MAX_DOCUMENT_UPLOAD_MB: ${MAX_DOCUMENT_UPLOAD_MB:-25}
+      MAX_VIDEO_UPLOAD_MB: ${MAX_VIDEO_UPLOAD_MB:-500}
+      PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
+      PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     command: sh -c "flask --app wsgi:app db upgrade && flask --app wsgi:app run --debug --host 0.0.0.0 --port 5000"
     depends_on:
       postgres:
@@ -58,3 +79,4 @@ services:
 volumes:
   frontend_node_modules:
   postgres_data:
+  course_uploads:

@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Bell, Menu, Search, LogOut, X, type LucideIcon } from "lucide-react";
+import { Menu, Search, LogOut, X, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ShellItem {
   label: string;
@@ -25,6 +26,8 @@ export function AppShell({
   user?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { user: authUser, logout } = useAuth();
+  const displayUser = authUser?.name ?? user;
   const location = useLocation();
   const sidebar = (
     <>
@@ -63,13 +66,13 @@ export function AppShell({
         </nav>
       </div>
       <div className="mt-auto border-t border-white/10 p-4">
-        <Link
-          to="/login"
+        <button
+          onClick={() => void logout()}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/65 hover:bg-white/7 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           Cerrar sesión
-        </Link>
+        </button>
       </div>
     </>
   );
@@ -99,16 +102,13 @@ export function AppShell({
             <Input className="bg-muted pl-9" placeholder="Buscar en la plataforma..." />
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <Button variant="ghost" size="icon" aria-label="Notificaciones" className="relative">
-              <Bell />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold" />
-            </Button>
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-navy">{user}</p>
+              <p className="text-sm font-medium text-navy">{displayUser}</p>
               <p className="text-xs text-muted-foreground">{role}</p>
             </div>
             <UserAvatar
-              initials={user
+              tone={authUser?.avatarKey}
+              initials={displayUser
                 .split(" ")
                 .map((part) => part[0])
                 .join("")

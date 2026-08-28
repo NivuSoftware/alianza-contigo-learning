@@ -1,23 +1,24 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { CourseCard } from "@/components/shared/CourseCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { courses } from "@/mocks/courses";
+import { usePublicCourses } from "@/hooks/use-public-courses";
 import { EmptyState } from "@/components/shared/EmptyState";
 
-const filters = ["Todos", "Aval SENESCYT", "Aval Ministerio del Trabajo", "MIPRO"] as const;
-
 export function CoursesPage() {
+  const { courses, loading, error, reload } = usePublicCourses();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<(typeof filters)[number]>("Todos");
+  const [filter, setFilter] = useState("Todos");
+  const filters = useMemo(
+    () => ["Todos", ...new Set(courses.flatMap((course) => course.endorsements))],
+    [courses],
+  );
 
   const list = courses.filter((c) => {
     const matchQuery = c.name.toLowerCase().includes(query.toLowerCase());
-    const matchFilter =
-      filter === "Todos" ||
-      c.endorsements.some((e) => e === filter || (filter === "MIPRO" && e === "MIPRO"));
+    const matchFilter = filter === "Todos" || c.endorsements.some((e) => e === filter);
     return matchQuery && matchFilter;
   });
 
@@ -60,12 +61,25 @@ export function CoursesPage() {
         </div>
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {loading &&
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="h-[430px] animate-pulse rounded-2xl bg-muted" />
+            ))}
           {list.map((c) => (
             <CourseCard key={c.id} course={c} />
           ))}
         </div>
 
-        {list.length === 0 && (
+        {error && (
+          <div className="mt-8 rounded-xl bg-red-50 p-5 text-sm text-red-800">
+            <p>{error}</p>
+            <Button variant="outline" className="mt-3" onClick={() => void reload()}>
+              Reintentar
+            </Button>
+          </div>
+        )}
+
+        {!loading && !error && list.length === 0 && (
           <div className="mt-8">
             <EmptyState
               icon={Search}

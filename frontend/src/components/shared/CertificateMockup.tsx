@@ -1,57 +1,68 @@
-import logo from "@/assets/alianza-logo.jpeg";
+import logo from "@/assets/logo_cert.png";
 import type { Certificate } from "@/types";
 
 export function CertificateMockup({ certificate }: { certificate: Certificate }) {
   return (
-    <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-xl bg-white p-1.5 shadow-[var(--shadow-lift)]">
-      <div className="relative overflow-hidden rounded-lg border-2 border-gold/40 navy-gradient px-6 py-10 text-center sm:px-14">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-gold/10 blur-2xl" />
+    <div className="certificate-sheet mx-auto w-full max-w-5xl overflow-hidden bg-[#f4f4f2] p-2.5 shadow-[var(--shadow-lift)]">
+      <div className="relative aspect-[1.414/1] overflow-hidden border-2 border-[#bd9345] bg-white px-8 py-7 text-center text-navy sm:px-20 sm:py-9">
+        <div className="pointer-events-none absolute inset-2 border border-navy/15" />
 
-        <img
-          src={logo}
-          alt="Alianza Contigo"
-          width={72}
-          height={72}
-          loading="lazy"
-          className="mx-auto h-24 w-24 rounded-lg bg-white object-contain"
-        />
-        <p className="mt-4 text-[11px] tracking-[0.35em] text-gold">ALIANZA CONTIGO</p>
-        <h3 className="mt-3 font-display text-2xl font-semibold text-white sm:text-3xl">
-          Certificado de aprobación
+        <div className="pointer-events-none absolute left-2 top-2 h-28 w-40 bg-navy [clip-path:polygon(0_0,100%_0,0_100%)] sm:h-40 sm:w-56" />
+        <div className="pointer-events-none absolute left-2 top-2 h-32 w-48 border-t-[5px] border-[#c79b48] [clip-path:polygon(0_0,100%_0,0_100%)] sm:h-44 sm:w-64" />
+        <div className="pointer-events-none absolute bottom-2 right-2 h-24 w-36 rotate-180 bg-navy [clip-path:polygon(0_0,100%_0,0_100%)] sm:h-36 sm:w-52" />
+        <div className="pointer-events-none absolute bottom-2 right-2 h-28 w-44 rotate-180 border-t-[5px] border-[#c79b48] [clip-path:polygon(0_0,100%_0,0_100%)] sm:h-40 sm:w-60" />
+
+        <div className="relative mx-auto h-14 w-32 overflow-hidden sm:h-20 sm:w-48">
+          <img
+            src={logo}
+            alt="Alianza Contigo"
+            className="absolute left-0 top-[-38%] h-auto w-full max-w-none"
+          />
+        </div>
+        <h3 className="relative mt-2 [font-family:Georgia,'Times_New_Roman',serif] text-3xl font-normal tracking-[0.16em] text-navy sm:text-5xl">
+          CERTIFICADO
         </h3>
-        <div className="mx-auto mt-4 gold-rule" />
+        <p className="relative mt-1 text-[10px] font-semibold tracking-[0.5em] text-[#a87824] sm:text-sm">
+          DE CULMINACIÓN
+        </p>
+        <div className="relative mx-auto mt-3 flex w-32 items-center gap-2 sm:w-44">
+          <span className="h-px flex-1 bg-[#bd9345]" />
+          <span className="h-1.5 w-1.5 rotate-45 border border-[#bd9345]" />
+          <span className="h-px flex-1 bg-[#bd9345]" />
+        </div>
 
-        <p className="mt-6 text-sm text-white/60">Se otorga el presente certificado a</p>
-        <p className="mt-2 font-display text-2xl font-semibold text-gradient-gold sm:text-3xl">
+        <p className="relative mt-5 text-[11px] tracking-wide text-slate-600 sm:mt-7 sm:text-sm">
+          Se otorga el presente certificado a
+        </p>
+        <p className="relative mx-auto mt-2 max-w-4xl text-balance [font-family:Georgia,'Times_New_Roman',serif] text-2xl italic leading-tight text-navy sm:text-5xl">
           {certificate.studentName}
         </p>
-        <p className="mx-auto mt-4 max-w-md text-sm text-white/70">
-          por haber culminado y aprobado satisfactoriamente el programa de educación continua
+        <div className="relative mx-auto mt-3 h-px max-w-2xl bg-[#bd9345]/70" />
+        <p className="relative mx-auto mt-4 max-w-xl text-[10px] leading-relaxed text-slate-600 sm:mt-5 sm:text-sm">
+          por haber culminado y aprobado satisfactoriamente el curso de
         </p>
-        <p className="mt-2 font-display text-lg font-semibold text-white">
+        <p className="relative mx-auto mt-2 max-w-2xl text-balance text-sm font-semibold uppercase tracking-[0.04em] text-navy sm:text-xl">
           {certificate.courseName}
         </p>
-        <p className="mt-3 text-xs tracking-wide text-gold">{certificate.endorsement}</p>
+        {certificate.endorsement && (
+          <p className="relative mt-2 text-[9px] tracking-wide text-slate-500 sm:text-xs">
+            Con el aval de {certificate.endorsement}
+          </p>
+        )}
 
-        <div className="mt-10 grid gap-6 text-left sm:grid-cols-3 sm:items-end">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-white/40">Fecha</p>
-            <p className="mt-1 text-sm text-white/85">{certificate.issuedAt}</p>
-          </div>
-          <div className="text-center">
-            <p className="font-[cursive] text-lg text-white/90">Ma. Fernanda Salgado</p>
-            <div className="mx-auto mt-1 h-px w-40 bg-gold/50" />
-            <p className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
-              Dirección Académica
-            </p>
-          </div>
-          <div className="sm:text-right">
-            <p className="text-[10px] uppercase tracking-widest text-white/40">
-              Código de verificación
-            </p>
-            <p className="mt-1 font-mono text-xs text-white/85">{certificate.code}</p>
-          </div>
+        <div className="absolute bottom-7 left-8 border-t border-[#bd9345]/55 pt-3 text-left sm:bottom-11 sm:left-20 sm:min-w-60">
+          <p className="text-[8px] uppercase tracking-[0.2em] text-slate-500 sm:text-[10px]">
+            Fecha de culminación
+          </p>
+          <p className="mt-1 text-[10px] font-medium text-navy sm:text-sm">
+            {certificate.issuedAt}
+          </p>
+          <p className="mt-3 text-[8px] uppercase tracking-[0.2em] text-slate-500 sm:text-[10px]">
+            Código de verificación
+          </p>
+          <p className="mt-1 font-mono text-[9px] font-medium tracking-wide text-navy sm:text-xs">
+            {certificate.code}
+          </p>
         </div>
       </div>
     </div>

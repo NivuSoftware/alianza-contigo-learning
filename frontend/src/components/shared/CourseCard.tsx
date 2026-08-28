@@ -1,21 +1,32 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Clock, MonitorPlay } from "lucide-react";
+import { ArrowUpRight, BookOpen, Clock, MonitorPlay } from "lucide-react";
 import type { Course } from "@/types";
 import { CourseBadge } from "./CourseBadge";
 import { Button } from "@/components/ui/button";
 
 export function CourseCard({ course }: { course: Course }) {
+  const currency = new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD" });
+  const hasDiscount = Boolean(course.discountPercent && course.originalPrice);
   return (
     <article className="surface-card hover-lift group flex h-full flex-col overflow-hidden">
       <div className="relative aspect-[16/10] overflow-hidden">
-        <img
-          src={course.image}
-          alt={course.name}
-          loading="lazy"
-          width={800}
-          height={560}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {course.image ? (
+          <img
+            src={course.image}
+            alt={course.name}
+            loading="lazy"
+            width={800}
+            height={560}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="grid h-full place-items-center bg-navy-soft text-white/70">
+            <span className="text-center">
+              <BookOpen className="mx-auto h-9 w-9 text-gold" />
+              <span className="mt-2 block text-xs">Portada pendiente</span>
+            </span>
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-navy/70 to-transparent" />
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
           {course.endorsements.map((e) => (
@@ -40,7 +51,18 @@ export function CourseCard({ course }: { course: Course }) {
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-          <span className="text-sm font-medium text-navy">{course.price}</span>
+          <span className="min-w-0">
+            {hasDiscount && (
+              <span className="block text-xs text-muted-foreground line-through">
+                {currency.format(course.originalPrice!)}
+              </span>
+            )}
+            <span className="block text-lg font-semibold text-navy">
+              {course.currentPrice !== undefined
+                ? currency.format(course.currentPrice)
+                : course.price}
+            </span>
+          </span>
           <Button asChild size="sm" variant="secondary" className="group/btn">
             <Link to={`/courses/${course.slug}`}>
               Ver programa

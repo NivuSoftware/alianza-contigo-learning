@@ -1,10 +1,28 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, ArrowRight } from "lucide-react";
+import {
+  Menu,
+  ArrowRight,
+  ChevronDown,
+  GraduationCap,
+  Presentation,
+  LayoutDashboard,
+  LogOut,
+} from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserAvatar } from "@/components/shared/UserAvatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const nav = [
   { label: "Inicio", to: "/" },
@@ -16,6 +34,10 @@ const nav = [
 function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { user, logout, loading } = useAuth();
+  const portalPath =
+    user?.role === "admin" ? "/admin" : user?.role === "teacher" ? "/profesor" : "/app";
+  const initials = user ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase() : "";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -57,9 +79,67 @@ function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/login">Iniciar sesión</Link>
-          </Button>
+          {loading ? (
+            <div
+              className="h-9 w-32 animate-pulse rounded-lg bg-muted"
+              aria-label="Restaurando sesión"
+            />
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <UserAvatar initials={initials} tone={user.avatarKey} className="h-8 w-8" />
+                  <span className="max-w-36 truncate">{user.firstName}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>
+                  <span className="block truncate text-sm text-navy">{user.name}</span>
+                  <span className="block truncate text-xs font-normal text-muted-foreground">
+                    {user.email}
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to={portalPath}>
+                    <LayoutDashboard /> Ir a mi panel
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void logout()} className="text-red-700">
+                  <LogOut /> Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  Iniciar sesión <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/login" className="gap-3">
+                    <GraduationCap className="h-4 w-4 text-gold" />
+                    <span>
+                      <strong className="block text-sm">Soy estudiante</strong>
+                      <span className="text-xs text-muted-foreground">Acceder o registrarme</span>
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/acceso-profesores" className="gap-3">
+                    <Presentation className="h-4 w-4 text-gold" />
+                    <span>
+                      <strong className="block text-sm">Soy docente</strong>
+                      <span className="text-xs text-muted-foreground">Ir al portal docente</span>
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Button asChild variant="gold" size="sm">
             <Link to="/courses">
               Ver cursos <ArrowRight className="h-4 w-4" />
@@ -86,9 +166,50 @@ function Header() {
                 </Link>
               ))}
               <div className="mt-4 flex flex-col gap-2">
-                <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                  <Link to="/login">Iniciar sesión</Link>
-                </Button>
+                {loading ? (
+                  <div className="h-20 animate-pulse rounded-lg bg-muted" />
+                ) : user ? (
+                  <>
+                    <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
+                      <UserAvatar initials={initials} tone={user.avatarKey} />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-navy">{user.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                      <Link to={portalPath}>
+                        <LayoutDashboard /> Ir a mi panel
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-red-700"
+                      onClick={() => {
+                        setOpen(false);
+                        void logout();
+                      }}
+                    >
+                      <LogOut /> Cerrar sesión
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="px-2 pt-2 text-xs font-medium text-muted-foreground">
+                      Iniciar sesión como
+                    </p>
+                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                      <Link to="/login">
+                        <GraduationCap /> Soy estudiante
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                      <Link to="/acceso-profesores">
+                        <Presentation /> Soy docente
+                      </Link>
+                    </Button>
+                  </>
+                )}
                 <Button asChild variant="gold" onClick={() => setOpen(false)}>
                   <Link to="/courses">Ver cursos</Link>
                 </Button>

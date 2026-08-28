@@ -1,7 +1,6 @@
 export type Role = "admin" | "teacher" | "student";
 
-export type Endorsement =
-  "Aval SENESCYT" | "Aval Ministerio del Trabajo" | "Cámara de Artesanos" | "MIPRO";
+export type Endorsement = string;
 
 export type LessonType = "video" | "pdf" | "document" | "text" | "resource" | "exam";
 export type LessonState = "completed" | "current" | "pending" | "locked";
@@ -13,12 +12,14 @@ export interface Lesson {
   duration: string;
   state: LessonState;
   description?: string;
+  mediaUrl?: string;
 }
 
 export interface Module {
   id: string;
   title: string;
   subtitle: string;
+  description?: string;
   lessons: Lesson[];
 }
 
@@ -37,6 +38,9 @@ export interface Course {
   status: "Activo" | "Borrador" | "Inactivo";
   studentsCount: number;
   price: string;
+  currentPrice?: number;
+  originalPrice?: number;
+  discountPercent?: number;
 }
 
 export interface Enrollment {
@@ -55,6 +59,8 @@ export interface Certificate {
   issuedAt: string;
   endorsement: Endorsement;
   code: string;
+  duration?: string;
+  score?: number;
 }
 
 export interface Student {
