@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import {
   Activity,
-  Award,
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
@@ -14,6 +13,9 @@ import {
   Save,
   Search,
   Settings,
+  CircleDollarSign,
+  GraduationCap,
+  Loader2,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -38,16 +40,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { courses, getCourse } from "@/mocks/courses";
-import {
-  adminStats,
-  enrollmentsAdmin,
-  enrollmentsByMonth,
-  examSubmissions,
-  recentActivity,
-  students,
-  studentsByCourse,
-  teachers,
-} from "@/mocks/student";
+import { enrollmentsAdmin, examSubmissions, students, teachers } from "@/mocks/student";
+import { api, ApiError } from "@/lib/api";
 import type { Course, ExamSubmission, Student } from "@/types";
 
 const Shell = ({
@@ -63,7 +57,6 @@ const Shell = ({
     {children}
   </AppShell>
 );
-const icons = [Users, BookOpen, UserCheck, Award];
 const status = (s: string) => (
   <Badge
     variant="secondary"
@@ -79,48 +72,157 @@ const status = (s: string) => (
   </Badge>
 );
 
+interface DashboardData {
+  stats: {
+    students: number;
+    activeStudents: number;
+    activeCourses: number;
+    enrollments: number;
+    revenue: number;
+    completedCourses: number;
+    completionRate: number;
+    pendingPayments: number;
+    pendingEvaluations: number;
+  };
+  enrollmentsByMonth: { month: string; enrollments: number }[];
+  studentsByCourse: { course: string; students: number }[];
+  recentActivity: {
+    id: string;
+    type: "enrollment" | "payment" | "student";
+    text: string;
+    createdAt: string;
+  }[];
+}
+
+function timeAgo(value: string) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return "hace unos segundos";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "ayer" : `hace ${days} días`;
+}
+
 export function AdminDashboard() {
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api<DashboardData>("/admin/dashboard")
+      .then(setDashboard)
+      .catch((reason) =>
+        toast.error(
+          reason instanceof ApiError ? reason.message : "No pudimos cargar el dashboard.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <Shell>
       <PageHeader
         title="Panel administrativo"
         description="Resumen operativo de Alianza Contigo."
       />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {adminStats.map((s, i) => (
-          <StatsCard key={s.label} {...s} icon={icons[i]!} />
-        ))}
-      </div>
-      <div className="mt-8 grid gap-6 xl:grid-cols-2">
-        <Chart
-          title="Inscripciones por mes"
-          data={enrollmentsByMonth}
-          dataKey="inscripciones"
-          nameKey="month"
-        />
-        <Chart
-          title="Estudiantes por curso"
-          data={studentsByCourse}
-          dataKey="estudiantes"
-          nameKey="course"
-        />
-      </div>
-      <section className="surface-card mt-6 p-6">
-        <h2 className="font-display text-lg font-semibold text-navy">Actividad reciente</h2>
-        <div className="mt-4 divide-y divide-border">
-          {recentActivity.map((a) => (
-            <div key={a.id} className="flex gap-3 py-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-gold">
-                <Activity className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-sm text-navy">{a.text}</p>
-                <p className="text-xs text-muted-foreground">{a.time}</p>
-              </div>
-            </div>
-          ))}
+      {loading ? (
+        <div className="surface-card grid min-h-80 place-items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
         </div>
-      </section>
+      ) : dashboard ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatsCard
+              label="Estudiantes registrados"
+              value={dashboard.stats.students.toLocaleString("es-EC")}
+              trend={`${dashboard.stats.activeStudents} cuentas activas`}
+              icon={Users}
+            />
+            <StatsCard
+              label="Cursos activos"
+              value={dashboard.stats.activeCourses.toLocaleString("es-EC")}
+              trend="Disponibles en el catálogo"
+              icon={BookOpen}
+            />
+            <StatsCard
+              label="Matrículas aprobadas"
+              value={dashboard.stats.enrollments.toLocaleString("es-EC")}
+              trend={`${dashboard.stats.completedCourses} cursos completados`}
+              icon={GraduationCap}
+            />
+            <StatsCard
+              label="Ingresos recibidos"
+              value={dashboard.stats.revenue.toLocaleString("es-EC", {
+                style: "currency",
+                currency: "USD",
+              })}
+              trend="Pagos aprobados"
+              icon={CircleDollarSign}
+            />
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">Tasa de culminación</p>
+              <p className="mt-2 text-2xl font-semibold text-navy">
+                {dashboard.stats.completionRate}%
+              </p>
+            </div>
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">Pagos por validar</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700">
+                {dashboard.stats.pendingPayments}
+              </p>
+            </div>
+            <div className="surface-card p-5">
+              <p className="text-sm text-muted-foreground">Evaluaciones por revisar</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700">
+                {dashboard.stats.pendingEvaluations}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-6 xl:grid-cols-2">
+            <Chart
+              title="Matrículas de los últimos 6 meses"
+              data={dashboard.enrollmentsByMonth}
+              dataKey="enrollments"
+              nameKey="month"
+            />
+            <Chart
+              title="Estudiantes por curso"
+              data={dashboard.studentsByCourse}
+              dataKey="students"
+              nameKey="course"
+            />
+          </div>
+          <section className="surface-card mt-6 p-6">
+            <h2 className="font-display text-lg font-semibold text-navy">Actividad reciente</h2>
+            {dashboard.recentActivity.length ? (
+              <div className="mt-4 divide-y divide-border">
+                {dashboard.recentActivity.map((item) => (
+                  <div key={item.id} className="flex gap-3 py-3">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-gold">
+                      <Activity className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm text-navy">{item.text}</p>
+                      <p className="text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">Aún no hay actividad registrada.</p>
+            )}
+          </section>
+        </>
+      ) : (
+        <div className="surface-card p-8 text-center text-sm text-muted-foreground">
+          No se pudo cargar la información administrativa.
+        </div>
+      )}
     </Shell>
   );
 }

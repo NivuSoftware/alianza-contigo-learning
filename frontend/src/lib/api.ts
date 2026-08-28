@@ -88,3 +88,15 @@ export async function upload(file: File): Promise<string> {
 export async function apiForm<T>(path: string, body: FormData): Promise<T> {
   return formRequest<T>(path, body);
 }
+
+export async function downloadApiFile(path: string, retry = true): Promise<Blob> {
+  const response = await fetch(`${API_URL}${path}`, { credentials: "include" });
+  if (response.status === 401 && retry && (await refreshSession())) {
+    return downloadApiFile(path, false);
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new ApiError(data.message || "No pudimos descargar el archivo.", response.status);
+  }
+  return response.blob();
+}

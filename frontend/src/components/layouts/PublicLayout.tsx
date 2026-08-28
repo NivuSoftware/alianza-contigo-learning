@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ChevronDown,
   GraduationCap,
-  Presentation,
   LayoutDashboard,
   LogOut,
 } from "lucide-react";
@@ -112,33 +111,11 @@ function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  Iniciar sesión <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link to="/login" className="gap-3">
-                    <GraduationCap className="h-4 w-4 text-gold" />
-                    <span>
-                      <strong className="block text-sm">Soy estudiante</strong>
-                      <span className="text-xs text-muted-foreground">Acceder o registrarme</span>
-                    </span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/acceso-profesores" className="gap-3">
-                    <Presentation className="h-4 w-4 text-gold" />
-                    <span>
-                      <strong className="block text-sm">Soy docente</strong>
-                      <span className="text-xs text-muted-foreground">Ir al portal docente</span>
-                    </span>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/login">
+                <GraduationCap className="h-4 w-4" /> Iniciar sesión
+              </Link>
+            </Button>
           )}
           <Button asChild variant="gold" size="sm">
             <Link to="/courses">
@@ -195,17 +172,9 @@ function Header() {
                   </>
                 ) : (
                   <>
-                    <p className="px-2 pt-2 text-xs font-medium text-muted-foreground">
-                      Iniciar sesión como
-                    </p>
                     <Button asChild variant="outline" onClick={() => setOpen(false)}>
                       <Link to="/login">
-                        <GraduationCap /> Soy estudiante
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                      <Link to="/acceso-profesores">
-                        <Presentation /> Soy docente
+                        <GraduationCap /> Iniciar sesión
                       </Link>
                     </Button>
                   </>

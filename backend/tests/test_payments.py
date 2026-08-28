@@ -202,6 +202,15 @@ def test_card_approves_and_enrolls_student_immediately():
         assert payment_summary.json["receivedTotal"] == 90.0
         assert payment_summary.json["approvedCount"] == 1
         assert payment_summary.json["payphone"]["status"] == "PENDING_CONFIGURATION"
+        dashboard = web.get("/api/v1/admin/dashboard")
+        assert dashboard.status_code == 200
+        assert dashboard.json["stats"]["students"] == 1
+        assert dashboard.json["stats"]["activeCourses"] == 2
+        assert dashboard.json["stats"]["enrollments"] == 1
+        assert dashboard.json["stats"]["revenue"] == 90.0
+        assert len(dashboard.json["enrollmentsByMonth"]) == 6
+        assert dashboard.json["studentsByCourse"]
+        assert dashboard.json["recentActivity"]
 
         web.post("/api/v1/auth/logout")
         assert login(web, "teacher@example.com", "teacher").status_code == 200
@@ -238,6 +247,11 @@ def test_card_approves_and_enrolls_student_immediately():
         assert certificate["courseName"] == "Curso tarjeta"
         assert certificate["score"] == 100.0
         assert certificate["code"].startswith("AC-")
+        pdf = web.get(f'/api/v1/exams/student/certificates/{certificate["id"]}/pdf')
+        assert pdf.status_code == 200
+        assert pdf.mimetype == "application/pdf"
+        assert pdf.data.startswith(b"%PDF-")
+        assert len(pdf.data) > 3000
         assert passed.json["score"] == 100
         completed = web.get("/api/v1/student/enrollments")
         assert completed.json["enrollments"][0]["progressPercent"] == 100

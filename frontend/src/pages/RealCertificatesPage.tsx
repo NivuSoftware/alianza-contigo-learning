@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, downloadApiFile } from "@/lib/api";
 import type { Certificate } from "@/types";
 
 interface ApiCertificate extends Omit<Certificate, "issuedAt"> {
@@ -31,20 +31,33 @@ function printableCertificate(certificate: ApiCertificate): Certificate {
   };
 }
 
-function printCertificate(id: string) {
-  const target = document.getElementById(`certificate-${id}`);
-  if (!target) return;
-  target.classList.add("certificate-print-target");
-  document.body.classList.add("certificate-print-mode");
-  window.print();
-  document.body.classList.remove("certificate-print-mode");
-  target.classList.remove("certificate-print-target");
-}
-
 export function RealCertificatesPage() {
   const [certificates, setCertificates] = useState<ApiCertificate[]>([]);
   const [selected, setSelected] = useState<ApiCertificate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  async function downloadCertificate(certificate: ApiCertificate) {
+    setDownloadingId(certificate.id);
+    try {
+      const blob = await downloadApiFile(`/exams/student/certificates/${certificate.id}/pdf`);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `certificado-${certificate.courseSlug}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Certificado descargado correctamente.");
+    } catch (reason) {
+      toast.error(
+        reason instanceof ApiError ? reason.message : "No pudimos descargar el certificado.",
+      );
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   useEffect(() => {
     api<{ certificates: ApiCertificate[] }>("/exams/student/certificates")
@@ -121,12 +134,21 @@ export function RealCertificatesPage() {
           </DialogHeader>
           {selected && (
             <>
-              <div id={`certificate-${selected.id}`}>
+              <div>
                 <CertificateMockup certificate={printableCertificate(selected)} />
               </div>
               <div className="flex justify-end">
-                <Button variant="gold" onClick={() => printCertificate(selected.id)}>
-                  <Download /> Descargar o guardar PDF
+                <Button
+                  variant="gold"
+                  disabled={downloadingId === selected.id}
+                  onClick={() => void downloadCertificate(selected)}
+                >
+                  {downloadingId === selected.id ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Download />
+                  )}
+                  Descargar PDF
                 </Button>
               </div>
             </>

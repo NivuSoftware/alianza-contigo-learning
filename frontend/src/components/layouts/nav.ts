@@ -6,7 +6,6 @@ import {
   Home,
   UserRound,
   Users,
-  UserCheck,
 } from "lucide-react";
 
 export const studentNav = [
@@ -20,7 +19,6 @@ export const adminNav = [
   { label: "Dashboard", to: "/admin", icon: Home },
   { label: "Cursos", to: "/admin/courses", icon: BookOpen },
   { label: "Estudiantes", to: "/admin/students", icon: Users },
-  { label: "Docentes", to: "/admin/teachers", icon: UserCheck },
   { label: "Evaluaciones", to: "/admin/evaluations", icon: ClipboardCheck },
   { label: "Pagos e ingresos", to: "/admin/enrollments", icon: GraduationCap },
 ];

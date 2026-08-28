@@ -3,11 +3,12 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from html import escape
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity
 
 from app.extensions import db
 from app.infrastructure.email_service import branded_html, send_html
+from app.infrastructure.certificate_pdf import build_certificate_pdf
 from app.infrastructure.persistence.models import ExamAttemptModel, EnrollmentModel, UserModel
 from app.presentation.auth_api import role_required
 
@@ -31,6 +32,25 @@ def lessons_are_complete(enrollment):
 
 def passed_attempt(enrollment):
     return next((attempt for attempt in enrollment.exam_attempts if attempt.status == "PASSED"), None)
+
+
+def certificate_for(enrollment):
+    attempt = passed_attempt(enrollment)
+    if not attempt or not enrollment.completed_at:
+        return None
+    course = enrollment.course
+    year = enrollment.completed_at.year
+    return {
+        "id": str(enrollment.id),
+        "courseSlug": course.slug,
+        "courseName": course.name,
+        "studentName": f"{enrollment.student.first_name} {enrollment.student.last_name}".strip(),
+        "issuedAt": enrollment.completed_at.isoformat(),
+        "endorsement": course.endorsement or course.certification,
+        "duration": course.duration,
+        "score": float(attempt.score),
+        "code": f"AC-{year}-{str(course.id)[:6].upper()}-{str(enrollment.id)[:6].upper()}",
+    }
 
 
 def student_exam_state(enrollment):
@@ -126,25 +146,37 @@ def student_certificates():
     )
     certificates = []
     for enrollment in enrollments:
-        attempt = passed_attempt(enrollment)
-        if not attempt or not enrollment.completed_at:
-            continue
-        course = enrollment.course
-        year = enrollment.completed_at.year
-        certificates.append(
-            {
-                "id": str(enrollment.id),
-                "courseSlug": course.slug,
-                "courseName": course.name,
-                "studentName": f"{enrollment.student.first_name} {enrollment.student.last_name}".strip(),
-                "issuedAt": enrollment.completed_at.isoformat(),
-                "endorsement": course.endorsement or course.certification,
-                "duration": course.duration,
-                "score": float(attempt.score),
-                "code": f"AC-{year}-{str(course.id)[:6].upper()}-{str(enrollment.id)[:6].upper()}",
-            }
-        )
+        certificate = certificate_for(enrollment)
+        if certificate:
+            certificates.append(certificate)
     return jsonify({"certificates": certificates})
+
+
+@exam_api.get("/student/certificates/<enrollment_id>/pdf")
+@role_required("student")
+def download_student_certificate(enrollment_id):
+    enrollment = student_enrollment(enrollment_id)
+    certificate = certificate_for(enrollment) if enrollment else None
+    if not certificate:
+        return jsonify({"message": "Este certificado no está disponible."}), 404
+    issued_at = enrollment.completed_at.strftime("%-d de %B de %Y")
+    months = {
+        "January": "enero", "February": "febrero", "March": "marzo",
+        "April": "abril", "May": "mayo", "June": "junio", "July": "julio",
+        "August": "agosto", "September": "septiembre", "October": "octubre",
+        "November": "noviembre", "December": "diciembre",
+    }
+    for english, spanish in months.items():
+        issued_at = issued_at.replace(english, spanish)
+    certificate["issuedAt"] = issued_at
+    filename = f"certificado-{enrollment.course.slug}.pdf"
+    return send_file(
+        build_certificate_pdf(certificate),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+        max_age=0,
+    )
 
 
 @exam_api.post("/student/enrollments/<enrollment_id>/submit")

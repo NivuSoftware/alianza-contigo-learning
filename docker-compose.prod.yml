@@ -1,0 +1,152 @@
+name: alianza-contigo-production
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Define DOMAIN in .env.production}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - course_uploads:/srv/uploads:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - edge
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - edge
+    logging: *default-logging
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - ${APP_ENV_FILE:-.env.production}
+    environment:
+      FLASK_ENV: production
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: Lax
+      FRONTEND_URL: https://${DOMAIN}
+      CORS_ORIGINS: https://${DOMAIN}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    command:
+      - sh
+      - -c
+      - >-
+        flask --app wsgi:app db upgrade &&
+        gunicorn --bind 0.0.0.0:5000
+        --workers ${GUNICORN_WORKERS:-2}
+        --threads ${GUNICORN_THREADS:-4}
+        --timeout 600
+        --graceful-timeout 60
+        --keep-alive 5
+        --worker-tmp-dir /dev/shm
+        --access-logfile -
+        --error-logfile -
+        wsgi:app
+    volumes:
+      - course_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/v1/health')",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - edge
+      - database
+    logging: *default-logging
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - database
+    logging: *default-logging
+
+  postgres_backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./deploy/backup-postgres.sh:/usr/local/bin/backup-postgres:ro
+      - postgres_backups:/backups
+    command: ["sh", "/usr/local/bin/backup-postgres"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - database
+    logging: *default-logging
+
+networks:
+  edge:
+  database:
+    internal: true
+
+volumes:
+  postgres_data:
+  postgres_backups:
+  course_uploads:
+    external: true
+    name: alianza-contigo-production_course_uploads
+  caddy_data:
+  caddy_config:

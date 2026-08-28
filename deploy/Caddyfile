@@ -1,0 +1,49 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	@hidden {
+		path_regexp hidden (^|/)\..*
+		not path /.well-known/acme-challenge/*
+	}
+	handle @hidden {
+		respond 404
+	}
+
+	@backup_files path *.bak *.backup *.old *.save *.sql *.sql.gz
+	handle @backup_files {
+		respond 404
+	}
+
+	handle /api/v1/uploads/* {
+		uri strip_prefix /api/v1/uploads
+		root * /srv/uploads
+		file_server
+		header Cache-Control "public, max-age=604800"
+	}
+
+	handle /api/* {
+		reverse_proxy backend:5000 {
+			transport http {
+				read_timeout 10m
+				write_timeout 10m
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

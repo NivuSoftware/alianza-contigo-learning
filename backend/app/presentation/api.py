@@ -3,6 +3,7 @@ from dataclasses import asdict
 import os
 import re
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
@@ -11,7 +12,7 @@ from flask_jwt_extended import get_jwt_identity
 
 from app.application.services.course_service import CourseService
 from app.extensions import db
-from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, UserModel
+from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamAttemptModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, PaymentOrderModel, UserModel
 from app.presentation.auth_api import role_required
 
 ALLOWED_UPLOADS = {"pdf", "png", "jpg", "jpeg", "webp", "mp4", "webm"}
@@ -77,6 +78,99 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
     @api.get("/health")
     def health():
         return jsonify({"status": "ok", "service": "alianza-contigo-api"})
+
+    @api.get("/admin/dashboard")
+    @role_required("admin")
+    def admin_dashboard():
+        students_count = UserModel.query.filter_by(role="student").count()
+        active_students = UserModel.query.filter_by(role="student", is_active=True).count()
+        active_courses = CourseModel.query.filter_by(status="ACTIVO").count()
+        enrollments_count = EnrollmentModel.query.count()
+        completed_count = EnrollmentModel.query.filter(EnrollmentModel.completed_at.isnot(None)).count()
+        approved_orders = PaymentOrderModel.query.filter_by(status="APPROVED").all()
+        revenue = sum((order.amount or Decimal("0") for order in approved_orders), Decimal("0"))
+        pending_payments = PaymentOrderModel.query.filter_by(status="PENDING").count()
+        pending_evaluations = ExamAttemptModel.query.filter_by(status="PENDING_REVIEW").count()
+
+        now = datetime.now(timezone.utc)
+        month_keys = []
+        year, month = now.year, now.month
+        for offset in range(5, -1, -1):
+            target_month = month - offset
+            target_year = year
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            month_keys.append((target_year, target_month))
+        monthly_counts = {key: 0 for key in month_keys}
+        for enrolled_at, in db.session.query(EnrollmentModel.enrolled_at).all():
+            key = (enrolled_at.year, enrolled_at.month)
+            if key in monthly_counts:
+                monthly_counts[key] += 1
+        month_names = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        enrollments_by_month = [
+            {"month": f"{month_names[item_month - 1]} {str(item_year)[-2:]}", "enrollments": monthly_counts[(item_year, item_month)]}
+            for item_year, item_month in month_keys
+        ]
+
+        students_by_course = []
+        for course in CourseModel.query.order_by(CourseModel.name.asc()).all():
+            students_by_course.append(
+                {
+                    "course": course.name,
+                    "students": EnrollmentModel.query.filter_by(course_id=course.id).count(),
+                }
+            )
+
+        activity = []
+        for enrollment in EnrollmentModel.query.order_by(EnrollmentModel.enrolled_at.desc()).limit(5):
+            activity.append(
+                {
+                    "id": f"enrollment-{enrollment.id}",
+                    "type": "enrollment",
+                    "text": f"{enrollment.student.first_name} {enrollment.student.last_name} se matriculó en {enrollment.course.name}",
+                    "createdAt": enrollment.enrolled_at.isoformat(),
+                }
+            )
+        for order in PaymentOrderModel.query.order_by(PaymentOrderModel.created_at.desc()).limit(5):
+            labels = {"PENDING": "Pago pendiente", "APPROVED": "Pago aprobado", "REJECTED": "Pago rechazado"}
+            activity.append(
+                {
+                    "id": f"payment-{order.id}",
+                    "type": "payment",
+                    "text": f"{labels.get(order.status, 'Pago')} de ${float(order.amount):,.2f} - {order.course.name}",
+                    "createdAt": order.created_at.isoformat(),
+                }
+            )
+        for student in UserModel.query.filter_by(role="student").order_by(UserModel.created_at.desc()).limit(5):
+            activity.append(
+                {
+                    "id": f"student-{student.id}",
+                    "type": "student",
+                    "text": f"Nuevo estudiante registrado: {student.first_name} {student.last_name}",
+                    "createdAt": student.created_at.isoformat(),
+                }
+            )
+        activity.sort(key=lambda item: item["createdAt"], reverse=True)
+
+        return jsonify(
+            {
+                "stats": {
+                    "students": students_count,
+                    "activeStudents": active_students,
+                    "activeCourses": active_courses,
+                    "enrollments": enrollments_count,
+                    "revenue": float(revenue),
+                    "completedCourses": completed_count,
+                    "completionRate": round(completed_count * 100 / enrollments_count) if enrollments_count else 0,
+                    "pendingPayments": pending_payments,
+                    "pendingEvaluations": pending_evaluations,
+                },
+                "enrollmentsByMonth": enrollments_by_month,
+                "studentsByCourse": students_by_course,
+                "recentActivity": activity[:8],
+            }
+        )
 
     @api.get("/courses")
     def list_courses():
