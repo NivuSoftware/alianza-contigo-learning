@@ -19,7 +19,7 @@ ALLOWED_UPLOADS = {"pdf", "png", "jpg", "jpeg", "webp", "mp4", "webm"}
 
 
 def serialize_lesson(lesson):
-    return {"id": str(lesson.id), "title": lesson.title, "type": lesson.lesson_type, "content": lesson.content, "mediaUrl": lesson.media_url, "durationMinutes": lesson.duration_minutes, "isPreview": lesson.is_preview, "position": lesson.position}
+    return {"id": str(lesson.id), "title": lesson.title, "type": lesson.lesson_type, "content": lesson.content, "mediaUrl": lesson.media_url, "durationMinutes": lesson.duration_minutes, "isPreview": lesson.is_preview, "interaction": lesson.interaction_data, "position": lesson.position}
 
 
 def serialize_module(module):
@@ -260,8 +260,8 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
         for module_index, module_data in enumerate(modules):
             module = CourseModuleModel(title=(module_data.get("title") or f"Módulo {module_index + 1}").strip(), description=module_data.get("description") or "", position=module_index)
             for lesson_index, lesson_data in enumerate(module_data.get("lessons", [])):
-                lesson_type = lesson_data.get("type") if lesson_data.get("type") in {"video", "text", "image", "pdf", "file"} else "text"
-                module.lessons.append(LessonModel(title=(lesson_data.get("title") or f"Lección {lesson_index + 1}").strip(), lesson_type=lesson_type, content=lesson_data.get("content") or "", media_url=lesson_data.get("mediaUrl") or None, duration_minutes=max(0, int(lesson_data.get("durationMinutes") or 0)), is_preview=bool(lesson_data.get("isPreview")), position=lesson_index))
+                lesson_type = lesson_data.get("type") if lesson_data.get("type") in {"video", "text", "image", "pdf", "file", "interactive"} else "text"
+                module.lessons.append(LessonModel(title=(lesson_data.get("title") or f"Lección {lesson_index + 1}").strip(), lesson_type=lesson_type, content=lesson_data.get("content") or "", media_url=lesson_data.get("mediaUrl") or None, duration_minutes=max(0, int(lesson_data.get("durationMinutes") or 0)), is_preview=bool(lesson_data.get("isPreview")), interaction_data=lesson_data.get("interaction") if lesson_type == "interactive" else None, position=lesson_index))
             course.modules.append(module)
         db.session.commit()
         return jsonify(serialize_course(course, True, True))
@@ -347,6 +347,22 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
             return jsonify({"message": "La lección no pertenece a este curso."}), 404
         completed_ids = {progress.lesson_id for progress in enrollment.lesson_progress}
         if lesson_uuid not in completed_ids:
+            lesson = next(item for item in ordered if item.id == lesson_uuid)
+            if lesson.lesson_type == "interactive":
+                activity = lesson.interaction_data or {}
+                answer = (request.get_json(silent=True) or {}).get("interactionAnswer")
+                activity_type = activity.get("type")
+                if activity_type in {"multiple_choice", "true_false"}:
+                    expected = (activity.get("correctAnswers") or [None])[0]
+                    correct = answer == expected
+                elif activity_type == "ordering":
+                    correct = answer == list(range(len(activity.get("options") or [])))
+                elif activity_type == "matching":
+                    correct = answer == list(range(len(activity.get("pairs") or [])))
+                else:
+                    correct = False
+                if not correct:
+                    return jsonify({"message": "Resuelve correctamente la actividad antes de continuar."}), 422
             first_pending = next((item_id for item_id in ordered_ids if item_id not in completed_ids), None)
             if first_pending != lesson_uuid:
                 return jsonify({"message": "Completa primero el contenido anterior para desbloquear esta lección."}), 409

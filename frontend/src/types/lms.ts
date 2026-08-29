@@ -1,5 +1,14 @@
 export type CourseStatus = "ACTIVO" | "CERRADO";
-export type LessonType = "video" | "text" | "image" | "pdf" | "file";
+export type LessonType = "video" | "text" | "image" | "pdf" | "file" | "interactive";
+export type InteractionType = "multiple_choice" | "true_false" | "ordering" | "matching";
+export interface InteractionDraft {
+  type: InteractionType;
+  prompt: string;
+  options: string[];
+  correctAnswers: number[];
+  pairs: Array<{ left: string; right: string }>;
+  explanation: string;
+}
 export interface LessonDraft {
   id?: string;
   title: string;
@@ -8,6 +17,7 @@ export interface LessonDraft {
   mediaUrl: string;
   durationMinutes: number;
   isPreview: boolean;
+  interaction?: InteractionDraft;
 }
 export interface ModuleDraft {
   id?: string;

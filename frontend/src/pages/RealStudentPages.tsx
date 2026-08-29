@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import {
   BookOpen,
+  BrainCircuit,
   ArrowLeft,
   ArrowRight,
   Award,
@@ -208,8 +209,168 @@ export function RealMyCoursesPage() {
   );
 }
 
-function LessonViewer({ lesson, onVideoEnded }: { lesson: LessonDraft; onVideoEnded: () => void }) {
+function InteractiveActivity({
+  lesson,
+  onSolved,
+}: {
+  lesson: LessonDraft;
+  onSolved: (answer: number | number[]) => void;
+}) {
+  const activity = lesson.interaction;
+  const [choice, setChoice] = useState<number | null>(null);
+  const [order, setOrder] = useState<number[]>(
+    () => activity?.options.map((_, i) => i).reverse() || [],
+  );
+  const [matches, setMatches] = useState<number[]>(() => activity?.pairs.map(() => -1) || []);
+  const [result, setResult] = useState<"idle" | "wrong" | "correct">("idle");
+  if (!activity)
+    return <p className="text-sm text-muted-foreground">Esta actividad aún no está configurada.</p>;
+  const check = () => {
+    const correct =
+      activity.type === "matching"
+        ? matches.every((value, index) => value === index)
+        : activity.type === "ordering"
+          ? order.every((value, index) => value === index)
+          : choice === activity.correctAnswers[0];
+    setResult(correct ? "correct" : "wrong");
+    if (correct)
+      onSolved(
+        activity.type === "matching" ? matches : activity.type === "ordering" ? order : choice!,
+      );
+  };
+  const move = (index: number, direction: number) => {
+    const target = index + direction;
+    if (target < 0 || target >= order.length) return;
+    const next = [...order];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    setOrder(next);
+    setResult("idle");
+  };
+  return (
+    <div className="surface-card overflow-hidden border-gold/30">
+      <div className="bg-navy p-6 text-white">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold">
+          <BrainCircuit className="h-4 w-4" /> Repaso interactivo
+        </p>
+        <h3 className="mt-3 text-xl font-semibold">{activity.prompt || lesson.title}</h3>
+        <p className="mt-2 text-sm text-white/65">
+          {activity.type === "ordering"
+            ? "Organiza los elementos en la secuencia correcta."
+            : activity.type === "matching"
+              ? "Relaciona cada concepto con su respuesta."
+              : "Selecciona la respuesta correcta."}
+        </p>
+      </div>
+      <div className="space-y-3 p-6">
+        {(activity.type === "multiple_choice" || activity.type === "true_false") &&
+          activity.options.map((option, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setChoice(index);
+                setResult("idle");
+              }}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition",
+                choice === index
+                  ? "border-gold bg-gold/10 text-navy"
+                  : "border-border hover:border-gold/50",
+              )}
+            >
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-xs font-bold">
+                {String.fromCharCode(65 + index)}
+              </span>
+              {option}
+            </button>
+          ))}
+        {activity.type === "ordering" &&
+          order.map((optionIndex, index) => (
+            <div
+              key={optionIndex}
+              className="flex items-center gap-3 rounded-xl border border-border p-3"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded bg-gold/15 text-xs font-bold text-gold">
+                {index + 1}
+              </span>
+              <span className="flex-1 text-sm">{activity.options[optionIndex]}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                disabled={index === 0}
+                onClick={() => move(index, -1)}
+              >
+                <ArrowLeft className="h-4 w-4 rotate-90" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                disabled={index === order.length - 1}
+                onClick={() => move(index, 1)}
+              >
+                <ArrowRight className="h-4 w-4 rotate-90" />
+              </Button>
+            </div>
+          ))}
+        {activity.type === "matching" &&
+          activity.pairs.map((pair, index) => (
+            <div key={index} className="grid items-center gap-2 sm:grid-cols-[1fr_auto_1fr]">
+              <div className="rounded-lg bg-muted p-3 text-sm font-medium text-navy">
+                {pair.left}
+              </div>
+              <span className="text-center text-gold">↔</span>
+              <select
+                className="h-11 rounded-lg border border-input bg-white px-3 text-sm"
+                value={matches[index]}
+                onChange={(e) => {
+                  setMatches(
+                    matches.map((value, i) => (i === index ? Number(e.target.value) : value)),
+                  );
+                  setResult("idle");
+                }}
+              >
+                <option value={-1}>Elige una relación…</option>
+                {[...activity.pairs].reverse().map((item) => {
+                  const original = activity.pairs.indexOf(item);
+                  return (
+                    <option key={original} value={original}>
+                      {item.right}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          ))}
+        {result === "wrong" && (
+          <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            Aún no es correcto. Revisa el contenido e inténtalo nuevamente.
+          </div>
+        )}
+        {result === "correct" && (
+          <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
+            <strong>¡Excelente, respuesta correcta!</strong>
+            {activity.explanation && <p className="mt-1">{activity.explanation}</p>}
+          </div>
+        )}
+        <Button variant="gold" disabled={result === "correct"} onClick={check}>
+          <CheckCircle2 /> Comprobar respuesta
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function LessonViewer({
+  lesson,
+  onVideoEnded,
+  onInteractionSolved,
+}: {
+  lesson: LessonDraft;
+  onVideoEnded: () => void;
+  onInteractionSolved: (answer: number | number[]) => void;
+}) {
   const media = lesson.mediaUrl || "";
+  if (lesson.type === "interactive")
+    return <InteractiveActivity key={lesson.id} lesson={lesson} onSolved={onInteractionSolved} />;
   if (lesson.type === "video") {
     return media ? (
       <div className="overflow-hidden rounded-xl bg-navy">
@@ -324,6 +485,8 @@ export function RealClassroomPage() {
   const [selectedId, setSelectedId] = useState("");
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [completing, setCompleting] = useState(false);
+  const [interactionSolved, setInteractionSolved] = useState(false);
+  const [interactionAnswer, setInteractionAnswer] = useState<number | number[] | null>(null);
   const firstPendingIndex = entries.findIndex((entry) => !completedIds.has(entry.lesson.id || ""));
   const unlockedThrough = firstPendingIndex === -1 ? entries.length - 1 : firstPendingIndex;
   const selectedIndex = Math.max(
@@ -353,8 +516,17 @@ export function RealClassroomPage() {
     setSelectedId(firstPending?.lesson.id || entries.at(-1)?.lesson.id || "");
   }, [enrolled, entries]);
 
+  useEffect(() => {
+    setInteractionSolved(false);
+    setInteractionAnswer(null);
+  }, [selectedId]);
+
   async function completeSelected() {
     if (!enrolled || !selected?.id || selectedCompleted || completing) return;
+    if (selected.type === "interactive" && !interactionSolved) {
+      toast.error("Resuelve correctamente la actividad antes de continuar.");
+      return;
+    }
     setCompleting(true);
     try {
       const response = await api<{
@@ -363,6 +535,7 @@ export function RealClassroomPage() {
         completedLessonIds: string[];
       }>(`/student/enrollments/${enrolled.id}/lessons/${selected.id}/complete`, {
         method: "POST",
+        body: JSON.stringify({ interactionAnswer }),
       });
       setCompletedIds(new Set(response.completedLessonIds));
       toast.success(
@@ -411,7 +584,14 @@ export function RealClassroomPage() {
         <section className="min-w-0">
           {selected ? (
             <>
-              <LessonViewer lesson={selected} onVideoEnded={() => void completeSelected()} />
+              <LessonViewer
+                lesson={selected}
+                onVideoEnded={() => void completeSelected()}
+                onInteractionSolved={(answer) => {
+                  setInteractionAnswer(answer);
+                  setInteractionSolved(true);
+                }}
+              />
               <div className="mt-6">
                 <p className="text-xs font-semibold text-gold">
                   Módulo {(selectedEntry?.moduleIndex ?? 0) + 1} · Lección {selectedIndex + 1} de{" "}
@@ -434,7 +614,12 @@ export function RealClassroomPage() {
                     <ArrowLeft /> {previousCrossesModule ? "Módulo anterior" : "Anterior lección"}
                   </Button>
                   {!selectedCompleted ? (
-                    <Button disabled={completing} onClick={() => void completeSelected()}>
+                    <Button
+                      disabled={
+                        completing || (selected.type === "interactive" && !interactionSolved)
+                      }
+                      onClick={() => void completeSelected()}
+                    >
                       {completing ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
                       Marcar como completada
                     </Button>
@@ -511,11 +696,13 @@ export function RealClassroomPage() {
                       ? CheckCircle2
                       : isLocked
                         ? LockKeyhole
-                        : lesson.type === "video"
-                          ? PlayCircle
-                          : lesson.type === "image"
-                            ? ImageIcon
-                            : BookOpen;
+                        : lesson.type === "interactive"
+                          ? BrainCircuit
+                          : lesson.type === "video"
+                            ? PlayCircle
+                            : lesson.type === "image"
+                              ? ImageIcon
+                              : BookOpen;
                     return (
                       <button
                         key={lesson.id}

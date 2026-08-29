@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BookOpen,
+  BrainCircuit,
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -456,12 +457,26 @@ export function CourseDataForm() {
 }
 
 const newLesson = (type: LessonType): LessonDraft => ({
-  title: "Nueva lección",
+  title: type === "interactive" ? "Repaso interactivo" : "Nueva lección",
   type,
   content: "",
   mediaUrl: "",
   durationMinutes: 0,
   isPreview: false,
+  interaction:
+    type === "interactive"
+      ? {
+          type: "multiple_choice",
+          prompt: "",
+          options: ["", ""],
+          correctAnswers: [0],
+          pairs: [
+            { left: "", right: "" },
+            { left: "", right: "" },
+          ],
+          explanation: "",
+        }
+      : undefined,
 });
 export function CourseContentBuilder() {
   const { slug = "" } = useParams();
@@ -507,7 +522,7 @@ export function CourseContentBuilder() {
     <Shell>
       <PageHeader
         title={`Constructor · ${course.name}`}
-        description="Organiza módulos y combina video, texto, imágenes y documentos."
+        description="Organiza módulos y combina contenidos con repasos y actividades didácticas."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
@@ -590,29 +605,33 @@ export function CourseContentBuilder() {
                   ))}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {(["video", "text", "image", "pdf"] as LessonType[]).map((type) => (
-                    <Button
-                      key={type}
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setModules(
-                          modules.map((m, i) =>
-                            i === mi ? { ...m, lessons: [...m.lessons, newLesson(type)] } : m,
-                          ),
-                        )
-                      }
-                    >
-                      <Plus className="h-4 w-4" />{" "}
-                      {type === "video"
-                        ? "Video"
-                        : type === "text"
-                          ? "Texto"
-                          : type === "image"
-                            ? "Imagen"
-                            : "PDF"}
-                    </Button>
-                  ))}
+                  {(["video", "text", "image", "pdf", "interactive"] as LessonType[]).map(
+                    (type) => (
+                      <Button
+                        key={type}
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setModules(
+                            modules.map((m, i) =>
+                              i === mi ? { ...m, lessons: [...m.lessons, newLesson(type)] } : m,
+                            ),
+                          )
+                        }
+                      >
+                        <Plus className="h-4 w-4" />{" "}
+                        {type === "video"
+                          ? "Video"
+                          : type === "text"
+                            ? "Texto"
+                            : type === "image"
+                              ? "Imagen"
+                              : type === "pdf"
+                                ? "PDF"
+                                : "Actividad interactiva"}
+                      </Button>
+                    ),
+                  )}
                 </div>
               </section>
             ))}
@@ -650,7 +669,14 @@ function LessonEditor({
   onDelete: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
-  const Icon = lesson.type === "video" ? Video : lesson.type === "image" ? Image : FileText;
+  const Icon =
+    lesson.type === "interactive"
+      ? BrainCircuit
+      : lesson.type === "video"
+        ? Video
+        : lesson.type === "image"
+          ? Image
+          : FileText;
   async function file(selected?: File) {
     if (!selected) return;
     setUploading(true);
@@ -677,50 +703,212 @@ function LessonEditor({
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <Field label="Contenido / descripción">
-          <Textarea
-            rows={3}
-            value={lesson.content}
-            onChange={(e) => onChange({ ...lesson, content: e.target.value })}
+      {lesson.type === "interactive" ? (
+        <InteractionEditor lesson={lesson} onChange={onChange} />
+      ) : (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <Field label="Contenido / descripción">
+            <Textarea
+              rows={3}
+              value={lesson.content}
+              onChange={(e) => onChange({ ...lesson, content: e.target.value })}
+            />
+          </Field>
+          {lesson.type !== "text" && (
+            <Field label="Archivo o URL">
+              <Input
+                value={lesson.mediaUrl}
+                onChange={(e) => onChange({ ...lesson, mediaUrl: e.target.value })}
+                placeholder="https://..."
+              />
+              <Input
+                className="mt-2"
+                type="file"
+                accept={
+                  lesson.type === "video"
+                    ? "video/mp4,video/webm"
+                    : lesson.type === "image"
+                      ? "image/*"
+                      : "application/pdf"
+                }
+                disabled={uploading}
+                onChange={(e) => void file(e.target.files?.[0])}
+              />
+            </Field>
+          )}
+          {lesson.type === "video" && (
+            <Field label="Duración del video (minutos)">
+              <Input
+                type="number"
+                min="0"
+                value={lesson.durationMinutes || ""}
+                placeholder="Ej. 12"
+                onChange={(e) =>
+                  onChange({ ...lesson, durationMinutes: Number(e.target.value) || 0 })
+                }
+              />
+            </Field>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InteractionEditor({
+  lesson,
+  onChange,
+}: {
+  lesson: LessonDraft;
+  onChange: (value: LessonDraft) => void;
+}) {
+  const interaction = lesson.interaction!;
+  const update = (changes: Partial<typeof interaction>) =>
+    onChange({ ...lesson, interaction: { ...interaction, ...changes } });
+  const labels = {
+    multiple_choice: "Opción múltiple",
+    true_false: "Verdadero o falso",
+    ordering: "Ordenar los pasos",
+    matching: "Relacionar parejas",
+  } as const;
+  const setType = (type: typeof interaction.type) => {
+    const options = type === "true_false" ? ["Verdadero", "Falso"] : interaction.options;
+    update({ type, options, correctAnswers: [0] });
+  };
+  return (
+    <div className="mt-4 space-y-4 rounded-xl border border-gold/30 bg-white p-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="Tipo de actividad">
+          <Select
+            value={interaction.type}
+            onValueChange={(value) => setType(value as typeof interaction.type)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(labels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Consigna o pregunta">
+          <Input
+            value={interaction.prompt}
+            onChange={(e) => update({ prompt: e.target.value })}
+            placeholder="¿Qué aprendimos en este módulo?"
           />
         </Field>
-        {lesson.type !== "text" && (
-          <Field label="Archivo o URL">
-            <Input
-              value={lesson.mediaUrl}
-              onChange={(e) => onChange({ ...lesson, mediaUrl: e.target.value })}
-              placeholder="https://..."
-            />
-            <Input
-              className="mt-2"
-              type="file"
-              accept={
-                lesson.type === "video"
-                  ? "video/mp4,video/webm"
-                  : lesson.type === "image"
-                    ? "image/*"
-                    : "application/pdf"
-              }
-              disabled={uploading}
-              onChange={(e) => void file(e.target.files?.[0])}
-            />
-          </Field>
-        )}
-        {lesson.type === "video" && (
-          <Field label="Duración del video (minutos)">
-            <Input
-              type="number"
-              min="0"
-              value={lesson.durationMinutes || ""}
-              placeholder="Ej. 12"
-              onChange={(e) =>
-                onChange({ ...lesson, durationMinutes: Number(e.target.value) || 0 })
-              }
-            />
-          </Field>
-        )}
       </div>
+      {interaction.type === "matching" ? (
+        <div className="space-y-2">
+          <Label>Parejas correctas</Label>
+          {interaction.pairs.map((pair, index) => (
+            <div key={index} className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
+              <Input
+                value={pair.left}
+                placeholder="Concepto"
+                onChange={(e) =>
+                  update({
+                    pairs: interaction.pairs.map((p, i) =>
+                      i === index ? { ...p, left: e.target.value } : p,
+                    ),
+                  })
+                }
+              />
+              <span className="text-gold">↔</span>
+              <Input
+                value={pair.right}
+                placeholder="Definición"
+                onChange={(e) =>
+                  update({
+                    pairs: interaction.pairs.map((p, i) =>
+                      i === index ? { ...p, right: e.target.value } : p,
+                    ),
+                  })
+                }
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => update({ pairs: interaction.pairs.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => update({ pairs: [...interaction.pairs, { left: "", right: "" }] })}
+          >
+            <Plus /> Añadir pareja
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label>
+            {interaction.type === "ordering"
+              ? "Pasos en el orden correcto"
+              : "Opciones (marca la correcta)"}
+          </Label>
+          {interaction.options.map((option, index) => (
+            <div key={index} className="flex items-center gap-2">
+              {interaction.type !== "ordering" && (
+                <input
+                  type="radio"
+                  name={`correct-${lesson.title}`}
+                  checked={interaction.correctAnswers[0] === index}
+                  onChange={() => update({ correctAnswers: [index] })}
+                />
+              )}
+              <Badge variant="outline">{index + 1}</Badge>
+              <Input
+                disabled={interaction.type === "true_false"}
+                value={option}
+                onChange={(e) =>
+                  update({
+                    options: interaction.options.map((item, i) =>
+                      i === index ? e.target.value : item,
+                    ),
+                  })
+                }
+              />
+              {interaction.type !== "true_false" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() =>
+                    update({ options: interaction.options.filter((_, i) => i !== index) })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+          {interaction.type !== "true_false" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => update({ options: [...interaction.options, ""] })}
+            >
+              <Plus /> Añadir {interaction.type === "ordering" ? "paso" : "opción"}
+            </Button>
+          )}
+        </div>
+      )}
+      <Field label="Explicación al responder correctamente">
+        <Textarea
+          rows={2}
+          value={interaction.explanation}
+          onChange={(e) => update({ explanation: e.target.value })}
+          placeholder="Refuerza aquí la idea principal..."
+        />
+      </Field>
     </div>
   );
 }

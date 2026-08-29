@@ -48,6 +48,7 @@ class LessonModel(db.Model):
     media_url = db.Column(db.String(500), nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=False, default=0)
     is_preview = db.Column(db.Boolean, nullable=False, default=False)
+    interaction_data = db.Column(db.JSON, nullable=True)
     position = db.Column(db.Integer, nullable=False, default=0)
     module = db.relationship("CourseModuleModel", back_populates="lessons")
 
