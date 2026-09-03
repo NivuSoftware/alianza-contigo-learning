@@ -55,8 +55,8 @@ export const certificates: Certificate[] = [
 ];
 
 export const studentStats = [
-  { label: "Cursos activos", value: "2" },
-  { label: "Cursos completados", value: "1" },
+  { label: "Programas activos", value: "2" },
+  { label: "Programas completados", value: "1" },
   { label: "Certificados", value: "1" },
   { label: "Horas de formación", value: "34 h" },
 ];
@@ -208,14 +208,14 @@ const questionBank: Omit<ExamQuestion, "id">[] = [
     score: 5,
   },
   {
-    text: "La gestión empresarial busca articular procesos, personas y recursos.",
+    text: "La gestión empresarial busca articular procesos, personas y reProgramas.",
     type: "boolean",
     options: ["Verdadero", "Falso"],
     correct: [0],
     score: 5,
   },
   {
-    text: "¿Qué indicador mide la eficiencia en el uso de recursos?",
+    text: "¿Qué indicador mide la eficiencia en el uso de reProgramas?",
     type: "single",
     options: [
       "Productividad",
@@ -266,7 +266,7 @@ export const enrollmentsAdmin = [
 
 export const adminStats = [
   { label: "Estudiantes registrados", value: "487", trend: "+12% este mes" },
-  { label: "Cursos activos", value: "5", trend: "Sin cambios" },
+  { label: "Programas activos", value: "5", trend: "Sin cambios" },
   { label: "Inscripciones", value: "624", trend: "+8% este mes" },
   { label: "Certificados emitidos", value: "312", trend: "+21 este mes" },
 ];

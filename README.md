@@ -219,7 +219,7 @@ Menú:
 
 Inicio
 
-Cursos
+Programas
 
 Nosotros
 
@@ -231,7 +231,7 @@ A la derecha:
 
 Iniciar sesión
 
-Botón dorado: “Ver cursos”
+Botón dorado: “Ver Programas”
 
 Header sticky al hacer scroll.
 
@@ -249,7 +249,7 @@ Programas de educación continua diseñados para ayudarte a aprender, crecer y t
 
 CTA principal:
 
-Explorar cursos
+Explorar Programas
 
 CTA secundario:
 
@@ -265,13 +265,13 @@ Certificaciones con aval
 
 Aprende a tu ritmo
 
-6. Sección de cursos destacados
+6. Sección de Programas destacados
 
 Título:
 
 Programas que impulsan tu crecimiento
 
-Mostrar los siguientes cursos:
+Mostrar los siguientes Programas:
 
 Gestor Empresarial
 
@@ -494,7 +494,7 @@ Logo
 
 Inicio
 
-Mis cursos
+Mis Programas
 
 Certificados
 
@@ -524,11 +524,11 @@ Continúa avanzando hacia tus objetivos profesionales.
 
 Cards superiores:
 
-Cursos activos
+Programas activos
 
 2
 
-Cursos completados
+Programas completados
 
 1
 
@@ -562,7 +562,7 @@ Botón:
 
 Continuar curso
 
-13. Mis cursos
+13. Mis Programas
 
 Crear filtros:
 
@@ -622,11 +622,11 @@ Tabs:
 
 Contenido
 
-Recursos
+ReProgramas
 
 Notas
 
-Permitir visualizar PDFs y recursos descargables.
+Permitir visualizar PDFs y reProgramas descargables.
 
 Derecha
 
@@ -834,7 +834,7 @@ Sidebar:
 
 Dashboard
 
-Cursos
+Programas
 
 Estudiantes
 
@@ -860,7 +860,7 @@ Estudiantes registrados
 
 487
 
-Cursos activos
+Programas activos
 
 5
 
@@ -892,13 +892,13 @@ Juan Gómez presentó una evaluación.
 
 María Andrade obtuvo un certificado.
 
-20. Gestión de cursos
+20. Gestión de Programas
 
 Tabla:
 
 Curso | Estudiantes | Estado | Aval | Acciones
 
-Cursos:
+Programas:
 
 Gestor Empresarial
 
@@ -1084,7 +1084,7 @@ Cédula
 
 Correo
 
-Cursos inscritos
+Programas inscritos
 
 Estado
 
@@ -1100,7 +1100,7 @@ Al entrar al estudiante mostrar:
 
 Datos personales.
 
-Cursos adquiridos.
+Programas adquiridos.
 
 Progreso.
 
@@ -1132,7 +1132,7 @@ Matricular estudiante
 
 Esto debe funcionar como simulación en el prototipo.
 
-27. Comercialización de cursos
+27. Comercialización de Programas
 
 Preparar visualmente la arquitectura para incorporar posteriormente compra online.
 
@@ -1306,7 +1306,7 @@ Usuario estudiante:
 
 Andrea Pérez
 
-Cursos activos:
+Programas activos:
 
 Gestor Empresarial — 65%
 
@@ -1384,7 +1384,7 @@ Quiero que construyas un prototipo visual navegable y profesional de toda la pla
 
 Landing page.
 
-Catálogo de cursos.
+Catálogo de Programas.
 
 Detalle del curso.
 
@@ -1392,7 +1392,7 @@ Login.
 
 Dashboard del estudiante.
 
-Mis cursos.
+Mis Programas.
 
 Aula virtual.
 
@@ -1402,7 +1402,7 @@ Certificados.
 
 Dashboard administrativo.
 
-Gestión de cursos.
+Gestión de Programas.
 
 Gestión de estudiantes.
 

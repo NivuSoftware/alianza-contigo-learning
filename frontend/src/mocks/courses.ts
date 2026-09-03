@@ -57,7 +57,7 @@ const baseModules = (): Module[] => [
         duration: "21:40",
         state: "current",
         description:
-          "Cómo articular procesos, personas y recursos para alcanzar los objetivos estratégicos de la organización.",
+          "Cómo articular procesos, personas y reProgramas para alcanzar los objetivos estratégicos de la organización.",
       },
       {
         id: "l6",

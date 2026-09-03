@@ -99,7 +99,7 @@ function useStudentEnrollments() {
         ),
       )
       .catch((reason) =>
-        setError(reason instanceof ApiError ? reason.message : "No pudimos cargar tus cursos."),
+        setError(reason instanceof ApiError ? reason.message : "No pudimos cargar tus Programas."),
       )
       .finally(() => setLoading(false));
   }, []);
@@ -113,14 +113,14 @@ function EmptyCourses({ error }: { error?: string }) {
         <BookOpen />
       </span>
       <h2 className="mt-4 font-display text-xl font-semibold text-navy">
-        {error ? "No pudimos cargar tus cursos" : "Aún no tienes cursos activos"}
+        {error ? "No pudimos cargar tus Programas" : "Aún no tienes Programas activos"}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         {error || "Explora la academia, elige un programa y completa tu inscripción para empezar."}
       </p>
       {!error && (
         <Button asChild variant="gold" className="mt-6">
-          <Link to="/courses">Explorar cursos</Link>
+          <Link to="/courses">Explorar Programas</Link>
         </Button>
       )}
     </div>
@@ -141,7 +141,7 @@ export function RealStudentDashboard() {
         description="Tus programas, avances y próximos logros en un solo lugar."
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard label="Cursos adquiridos" value={String(items.length)} icon={BookOpen} />
+        <StatsCard label="Programas adquiridos" value={String(items.length)} icon={BookOpen} />
         <StatsCard label="En progreso" value={String(items.length - completed)} icon={PlayCircle} />
         <StatsCard label="Completados" value={String(completed)} icon={CheckCircle2} />
         <StatsCard label="Avance promedio" value={`${average}%`} icon={Clock3} />
@@ -179,7 +179,7 @@ export function RealMyCoursesPage() {
   return (
     <Shell>
       <PageHeader
-        title="Mis cursos"
+        title="Mis Programas"
         description="Programas con pago aprobado y acceso habilitado."
       />
       <div className="mb-6 flex flex-wrap gap-2">

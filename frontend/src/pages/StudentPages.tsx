@@ -94,7 +94,7 @@ export function MyCoursesPage() {
   return (
     <Shell>
       <PageHeader
-        title="Mis cursos"
+        title="Mis Programas"
         description="Todos tus programas y su avance en un solo lugar."
       />
       <div className="mb-6 flex flex-wrap gap-2">
@@ -154,14 +154,14 @@ export function ClassroomPage() {
           <Tabs defaultValue="content" className="mt-6">
             <TabsList>
               <TabsTrigger value="content">Contenido</TabsTrigger>
-              <TabsTrigger value="resources">Recursos</TabsTrigger>
+              <TabsTrigger value="resources">ReProgramas</TabsTrigger>
               <TabsTrigger value="notes">Notas</TabsTrigger>
             </TabsList>
             <TabsContent
               value="content"
               className="surface-card mt-4 p-5 text-sm text-muted-foreground"
             >
-              En esta lección aprenderás a articular procesos, personas y recursos para alcanzar
+              En esta lección aprenderás a articular procesos, personas y reProgramas para alcanzar
               objetivos estratégicos medibles.
             </TabsContent>
             <TabsContent value="resources" className="surface-card mt-4 p-5">

@@ -61,7 +61,7 @@ export function RealStudentsPage() {
     <AppShell items={adminNav} role="Administrador">
       <PageHeader
         title="Estudiantes"
-        description="Cuentas registradas y cursos habilitados en la academia."
+        description="Cuentas registradas y Programas habilitados en la academia."
       />
       <div className="relative mb-5 max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -91,7 +91,7 @@ export function RealStudentsPage() {
                 <th className="p-4">Estudiante</th>
                 <th className="p-4">Contacto</th>
                 <th className="p-4">Cédula</th>
-                <th className="p-4">Cursos</th>
+                <th className="p-4">Programas</th>
                 <th className="p-4">Registro</th>
                 <th className="p-4">Estado</th>
                 <th className="p-4 text-right">Acción</th>
@@ -204,7 +204,7 @@ export function RealStudentDetail() {
       </section>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatsCard
-          label="Cursos adquiridos"
+          label="Programas adquiridos"
           value={String(data.enrollments.length)}
           icon={BookOpen}
         />
@@ -213,7 +213,7 @@ export function RealStudentDetail() {
       </div>
       <section className="surface-card mt-6 overflow-x-auto">
         <div className="border-b border-border p-5">
-          <h2 className="font-display font-semibold text-navy">Cursos habilitados</h2>
+          <h2 className="font-display font-semibold text-navy">Programas habilitados</h2>
         </div>
         {data.enrollments.length ? (
           <table className="w-full min-w-[720px] text-sm">
@@ -240,7 +240,7 @@ export function RealStudentDetail() {
           </table>
         ) : (
           <p className="p-6 text-sm text-muted-foreground">
-            Este estudiante todavía no tiene cursos habilitados.
+            Este estudiante todavía no tiene Programas habilitados.
           </p>
         )}
       </section>

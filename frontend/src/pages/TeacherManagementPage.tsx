@@ -118,7 +118,7 @@ export function TeacherManagementPage() {
               <UserCheck className="mx-auto h-9 w-9 text-gold" />
               <h2 className="mt-4 font-semibold text-navy">Aún no hay profesores</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Crea la primera cuenta para asignarle cursos.
+                Crea la primera cuenta para asignarle Programas.
               </p>
             </div>
           </div>

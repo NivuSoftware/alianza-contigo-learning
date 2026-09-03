@@ -65,7 +65,7 @@ export function usePublicCourses() {
     return api<LmsCourse[]>("/courses")
       .then((data) => setCourses(data.map(toPublicCourse)))
       .catch((reason) =>
-        setError(reason instanceof ApiError ? reason.message : "No pudimos cargar los cursos."),
+        setError(reason instanceof ApiError ? reason.message : "No pudimos cargar los Programas."),
       )
       .finally(() => setLoading(false));
   }, []);

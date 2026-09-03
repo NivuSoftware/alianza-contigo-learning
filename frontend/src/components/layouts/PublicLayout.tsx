@@ -25,7 +25,7 @@ import {
 
 const nav = [
   { label: "Inicio", to: "/" },
-  { label: "Cursos", to: "/courses" },
+  { label: "Programas", to: "/courses" },
   { label: "Nosotros", to: "/nosotros" },
   { label: "Contáctanos", to: "/contacto" },
 ] as const;
@@ -119,7 +119,7 @@ function Header() {
           )}
           <Button asChild variant="gold" size="sm">
             <Link to="/courses">
-              Ver cursos <ArrowRight className="h-4 w-4" />
+              Ver Programas <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -180,7 +180,7 @@ function Header() {
                   </>
                 )}
                 <Button asChild variant="gold" onClick={() => setOpen(false)}>
-                  <Link to="/courses">Ver cursos</Link>
+                  <Link to="/courses">Ver Programas</Link>
                 </Button>
               </div>
             </div>
@@ -198,8 +198,7 @@ function Footer() {
         <div className="md:col-span-2">
           <Logo variant="light" />
           <p className="mt-4 max-w-sm text-sm text-white/60">
-            Educación continua con aval institucional para profesionales que buscan crecer y
-            proyectarse en su carrera.
+           Educación continua para desarrollar conocimientos y competencias, avanzar profesionalmente y transformar el aprendizaje en nuevas oportunidades.
           </p>
           <p className="mt-6 text-xs tracking-[0.3em] text-gold">APRENDE | CRECE | TRASCIENDE</p>
         </div>
@@ -208,7 +207,7 @@ function Footer() {
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <Link to="/courses" className="transition-colors hover:text-gold">
-                Catálogo de cursos
+                Catálogo de Programas
               </Link>
             </li>
             <li>
@@ -228,7 +227,8 @@ function Footer() {
           <ul className="mt-4 space-y-2 text-sm">
             <li>info@alianzacontigo.edu.ec</li>
             <li>+593 99 000 0000</li>
-            <li>Quito · Ecuador</li>
+            <li>Juan José Flores y Guapondelig – Edificio Puntosol</li>
+            <li>Cuenca Ecuador</li>
           </ul>
         </div>
       </div>

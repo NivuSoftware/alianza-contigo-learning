@@ -9,11 +9,13 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_jwt_extended import get_jwt_identity
+from markupsafe import escape
 
 from app.application.services.course_service import CourseService
 from app.extensions import db
 from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamAttemptModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, PaymentOrderModel, UserModel
 from app.presentation.auth_api import role_required
+from app.infrastructure.email_service import branded_html, send_html
 
 ALLOWED_UPLOADS = {"pdf", "png", "jpg", "jpeg", "webp", "mp4", "webm"}
 
@@ -78,6 +80,56 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
     @api.get("/health")
     def health():
         return jsonify({"status": "ok", "service": "alianza-contigo-api"})
+
+    @api.post("/contact")
+    def contact():
+        data = request.get_json(silent=True) or {}
+        name = (data.get("name") or "").strip()
+        email = (data.get("email") or "").strip().lower()
+        phone = (data.get("phone") or "").strip()
+        course_slug = (data.get("courseSlug") or "").strip()
+        message = (data.get("message") or "").strip()
+
+        if not all((name, email, phone, course_slug, message)):
+            return jsonify({"message": "Completa todos los campos del formulario."}), 400
+        if len(name) > 160 or len(email) > 254 or len(phone) > 40 or len(message) > 3000:
+            return jsonify({"message": "Uno de los campos supera la longitud permitida."}), 400
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+            return jsonify({"message": "Ingresa un correo electrónico válido."}), 400
+
+        course = CourseModel.query.filter_by(slug=course_slug, status="ACTIVO").first()
+        if course is None:
+            return jsonify({"message": "Selecciona un programa disponible."}), 400
+
+        recipient = current_app.config.get("MAIL_RECIPIENT")
+        if not recipient:
+            current_app.logger.error("MAIL_RECIPIENT no está configurado")
+            return jsonify({"message": "El canal de contacto no está configurado. Inténtalo más tarde."}), 503
+
+        safe_name = escape(name)
+        safe_email = escape(email)
+        safe_phone = escape(phone)
+        safe_course = escape(course.name)
+        safe_message = escape(message).replace("\n", "<br>")
+        html = branded_html(
+            "Nueva consulta de un futuro estudiante",
+            f"<strong>{safe_name}</strong> quiere conocer más sobre un programa de Alianza Contigo.",
+            f'''<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-collapse:collapse">
+                <tr><td style="padding:10px 0;color:#667085;width:150px">Programa de interés</td><td style="padding:10px 0;font-weight:700;color:#071C3A">{safe_course}</td></tr>
+                <tr><td style="padding:10px 0;color:#667085">Nombre completo</td><td style="padding:10px 0;color:#071C3A">{safe_name}</td></tr>
+                <tr><td style="padding:10px 0;color:#667085">Correo electrónico</td><td style="padding:10px 0"><a href="mailto:{safe_email}" style="color:#0E315C">{safe_email}</a></td></tr>
+                <tr><td style="padding:10px 0;color:#667085">Teléfono</td><td style="padding:10px 0;color:#071C3A">{safe_phone}</td></tr>
+              </table>
+              <div style="background:#F7F8FA;border-radius:8px;padding:18px 20px"><strong style="display:block;margin-bottom:8px;color:#071C3A">¿Qué está buscando?</strong>{safe_message}</div>''',
+        )
+        try:
+            if not send_html(recipient, f"Consulta web: {course.name} — {name}", html):
+                return jsonify({"message": "No pudimos enviar tu consulta. Inténtalo más tarde."}), 503
+        except Exception:
+            current_app.logger.exception("No se pudo enviar la consulta de contacto")
+            return jsonify({"message": "No pudimos enviar tu consulta. Inténtalo más tarde."}), 502
+
+        return jsonify({"message": "Tu consulta fue enviada correctamente."}), 201
 
     @api.get("/admin/dashboard")
     @role_required("admin")

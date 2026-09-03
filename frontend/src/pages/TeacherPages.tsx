@@ -14,7 +14,7 @@ export function TeacherDashboard() {
       />
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ["Cursos activos", "3", BookOpen],
+          ["Programas activos", "3", BookOpen],
           ["Estudiantes", "84", Users],
           ["Por revisar", "7", Clock3],
           ["Revisadas este mes", "36", CheckCircle2],
@@ -35,7 +35,7 @@ export function TeacherDashboard() {
             </p>
           </div>
           <Button asChild>
-            <Link to="/profesor/cursos">Ver mis cursos</Link>
+            <Link to="/profesor/Programas">Ver mis Programas</Link>
           </Button>
         </div>
         <div className="mt-5 divide-y">
@@ -63,7 +63,7 @@ export function TeacherDashboard() {
 
 export function TeacherSection({ type }: { type: "courses" | "students" }) {
   const content = {
-    courses: ["Mis cursos", "Consulta los programas que tienes asignados.", BookOpen],
+    courses: ["Mis Programas", "Consulta los programas que tienes asignados.", BookOpen],
     students: ["Mis estudiantes", "Consulta progreso y participación de tus grupos.", Users],
   }[type];
   const Icon = content[2] as typeof BookOpen;

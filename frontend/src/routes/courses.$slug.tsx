@@ -112,7 +112,7 @@ export function CourseDetail() {
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Link to="/courses" className="hover:text-gold">
-                      Cursos
+                      Programas
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>

@@ -103,7 +103,7 @@ export function PaymentOrdersPage() {
     <AppShell items={adminNav} role="Administrador">
       <PageHeader
         title="Pagos e ingresos"
-        description="Controla los ingresos por cursos, concilia transacciones y valida transferencias."
+        description="Controla los ingresos por Programas, concilia transacciones y valida transferencias."
       />
       <section className="mb-6 grid gap-4 sm:grid-cols-3">
         <article className="surface-card p-5">

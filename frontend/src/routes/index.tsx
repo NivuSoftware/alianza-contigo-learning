@@ -17,26 +17,26 @@ import { usePublicCourses } from "@/hooks/use-public-courses";
 import heroImage from "@/assets/hero.jpg";
 
 const highlights = [
-  { icon: GraduationCap, label: "Formación profesional" },
-  { icon: BadgeCheck, label: "Certificaciones con aval" },
-  { icon: Clock3, label: "Aprende a tu ritmo" },
+  { icon: GraduationCap, label: "Aprendizaje aplicado" },
+  { icon: BadgeCheck, label: "Certificación y respaldo institucional" },
+  { icon: Clock3, label: "Avanza a tu ritmo" },
 ];
 
 const pillars = [
   {
     icon: Award,
-    title: "Aval institucional",
-    text: "Programas respaldados por SENESCYT, Ministerio del Trabajo, MIPRO y la Cámara de Artesanos.",
+    title: "Respaldo institucional",
+    text: "Cada programa identifica de manera clara la institución responsable, su certificación y el respaldo que corresponda.",
   },
   {
     icon: Users,
     title: "Docentes con experiencia",
-    text: "Profesionales en ejercicio que acompañan cada módulo con casos prácticos y tutorías.",
+    text: "Aprende juntos a profesionales que conectan los contenidos con situaciones y desafíos de ejercicio profesional.",
   },
   {
     icon: TrendingUp,
     title: "Progreso medible",
-    text: "Aula virtual con seguimiento de avance, evaluaciones y certificado al aprobar.",
+    text: "Avanza mediante módulos, actividades y evaluaciones que permiten evidenciar tu proceso de aprendizaje.",
   },
 ];
 
@@ -51,20 +51,19 @@ export function Landing() {
           <div className="animate-fade-in">
             <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
               <Sparkles className="h-3.5 w-3.5" />
-              Educación continua para profesionales
+              Educación continua para crecer profesionalmente
             </span>
             <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.08] text-navy sm:text-5xl lg:text-6xl">
-              Impulsa tu <span className="text-gradient-gold">futuro profesional</span>
+              Impulsa tu <span className="text-gradient-gold">crecimiento profesional</span>
             </h1>
             <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-              Programas de educación continua diseñados para ayudarte a aprender, crecer y
-              trascender.
+              Programas de educación continua diseñados para desarrollar conocimientos y competencias aplicables a tu vida profesional.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="gold" size="lg">
                 <Link to="/courses">
-                  Explorar cursos <ArrowRight className="h-4 w-4" />
+                  Explorar programas <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -114,7 +113,7 @@ export function Landing() {
         </div>
       </section>
 
-      {/* CURSOS */}
+      {/* Programas */}
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <div className="gold-rule" />
@@ -122,8 +121,7 @@ export function Landing() {
             Programas que impulsan tu crecimiento
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Formación práctica con aval institucional, disponible 100% en línea desde tu aula
-            virtual.
+            Elige el programa que se adapte a tus objetivos y aprende mediante contenidos, actividades y evaluaciones diseñadas para avanzar paso a paso.
           </p>
         </div>
 
@@ -161,7 +159,7 @@ export function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild variant="gold" size="lg">
-              <Link to="/courses">Ver todos los cursos</Link>
+              <Link to="/courses">Ver todos los Programas</Link>
             </Button>
             <Button
               asChild

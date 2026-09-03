@@ -150,7 +150,7 @@ function RoleLoginFrame({
               {[
                 [ClipboardCheck, "Revisa evaluaciones y entrega retroalimentación"],
                 [UsersRound, "Consulta el avance de tus grupos"],
-                [BookOpenCheck, "Personaliza el contenido de tus cursos"],
+                [BookOpenCheck, "Personaliza el contenido de tus Programas"],
               ].map(([Icon, text]) => (
                 <div
                   key={String(text)}

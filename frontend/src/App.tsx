@@ -180,7 +180,7 @@ export function App() {
         }
       />
       <Route
-        path="/profesor/cursos"
+        path="/profesor/Programas"
         element={
           <ProtectedRoute role="teacher">
             <CourseAdminList teacher />
@@ -188,7 +188,7 @@ export function App() {
         }
       />
       <Route
-        path="/profesor/cursos/:slug"
+        path="/profesor/Programas/:slug"
         element={
           <ProtectedRoute role="teacher">
             <TeacherCoursePage />

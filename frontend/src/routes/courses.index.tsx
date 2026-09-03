@@ -27,10 +27,9 @@ export function CoursesPage() {
       <section className="border-b border-border bg-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="gold-rule" />
-          <h1 className="mt-4 font-display text-4xl font-semibold text-navy">Catálogo de cursos</h1>
+          <h1 className="mt-4 font-display text-4xl font-semibold text-navy">Catálogo de Programas</h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Programas de educación continua con aval institucional. Elige el tuyo y comienza tu ruta
-            profesional.
+            Encuentra la formación que se adapte a tus objetivos profesionales. Conoce sus contenidos, metodología, duración, certificación y ruta de aprendizaje antes de comenzar.
           </p>
         </div>
       </section>

@@ -272,7 +272,7 @@ def submit_student_exam(enrollment_id):
                 "Hola docente,",
                 f"<strong>{escape(student.first_name)} {escape(student.last_name)}</strong> no alcanzó el puntaje mínimo en el intento {attempt.attempt_number} del examen final de <strong>{escape(course.name)}</strong>. Ingresa para revisar sus respuestas, registrar retroalimentación y habilitar el siguiente intento si corresponde.",
                 "Revisar evaluación",
-                f'{current_app.config["FRONTEND_URL"]}/profesor/cursos/{course.slug}',
+                f'{current_app.config["FRONTEND_URL"]}/profesor/Programas/{course.slug}',
             ),
         )
     return jsonify({"passed": False, "status": "PENDING_REVIEW", "message": "Tu examen fue enviado al docente para revisión. Recibirás su retroalimentación por correo."})

@@ -138,7 +138,7 @@ export function CourseAdminList({ teacher = false }: { teacher?: boolean }) {
   return (
     <Shell>
       <PageHeader
-        title={teacher ? "Mis cursos asignados" : "Gestión de cursos"}
+        title={teacher ? "Mis Programas asignados" : "Gestión de Programas"}
         description={
           teacher
             ? "Consulta estudiantes, progreso y evaluaciones por curso."
@@ -156,7 +156,7 @@ export function CourseAdminList({ teacher = false }: { teacher?: boolean }) {
       />
       <div className="surface-card overflow-x-auto">
         {loading ? (
-          <p className="p-6 text-sm text-muted-foreground">Cargando cursos...</p>
+          <p className="p-6 text-sm text-muted-foreground">Cargando Programas...</p>
         ) : error ? (
           <p className="p-6 text-sm text-destructive">{error}</p>
         ) : courses.length === 0 ? (
@@ -164,7 +164,7 @@ export function CourseAdminList({ teacher = false }: { teacher?: boolean }) {
             <div>
               <BookOpen className="mx-auto h-9 w-9 text-gold" />
               <h2 className="mt-4 font-semibold text-navy">
-                {teacher ? "No tienes cursos asignados" : "Crea tu primer curso"}
+                {teacher ? "No tienes Programas asignados" : "Crea tu primer curso"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Luego agrega sus módulos y examen final.
@@ -241,7 +241,7 @@ export function CourseAdminList({ teacher = false }: { teacher?: boolean }) {
                     <div className="flex justify-end gap-2">
                       {teacher ? (
                         <Button asChild size="sm">
-                          <Link to={`/profesor/cursos/${c.slug}`}>Ver estudiantes y avance</Link>
+                          <Link to={`/profesor/Programas/${c.slug}`}>Ver estudiantes y avance</Link>
                         </Button>
                       ) : (
                         <>
@@ -527,7 +527,7 @@ export function CourseContentBuilder() {
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link to="/admin/courses">
-                <ArrowLeft /> Volver a cursos
+                <ArrowLeft /> Volver a Programas
               </Link>
             </Button>
             <Button variant="gold" onClick={() => void saveContent()} disabled={saving}>

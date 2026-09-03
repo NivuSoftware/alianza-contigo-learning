@@ -140,7 +140,7 @@ export function AdminDashboard() {
               icon={Users}
             />
             <StatsCard
-              label="Cursos activos"
+              label="Programas activos"
               value={dashboard.stats.activeCourses.toLocaleString("es-EC")}
               trend="Disponibles en el catálogo"
               icon={BookOpen}
@@ -148,7 +148,7 @@ export function AdminDashboard() {
             <StatsCard
               label="Matrículas aprobadas"
               value={dashboard.stats.enrollments.toLocaleString("es-EC")}
-              trend={`${dashboard.stats.completedCourses} cursos completados`}
+              trend={`${dashboard.stats.completedCourses} Programas completados`}
               icon={GraduationCap}
             />
             <StatsCard
@@ -295,7 +295,7 @@ export function AdminCourses() {
   return (
     <Shell>
       <PageHeader
-        title="Gestión de cursos"
+        title="Gestión de Programas"
         description="Administra el catálogo, contenido y evaluaciones."
         actions={
           <Button asChild variant="gold">
@@ -485,7 +485,7 @@ export function EvaluationBuilder() {
         {[
           "¿Cuál es una función del proceso administrativo?",
           "Selecciona los elementos de una planificación estratégica.",
-          "La gestión empresarial articula personas y recursos.",
+          "La gestión empresarial articula personas y reProgramas.",
         ].map((q, i) => (
           <section key={q} className="surface-card flex items-center gap-4 p-4">
             <GripVertical className="text-muted-foreground" />
@@ -513,7 +513,7 @@ const studentCols: Column<Student>[] = [
     ),
   },
   { key: "id", header: "Cédula", render: (s) => s.idCard },
-  { key: "courses", header: "Cursos", render: (s) => s.coursesEnrolled },
+  { key: "courses", header: "Programas", render: (s) => s.coursesEnrolled },
   { key: "status", header: "Estado", render: (s) => status(s.status) },
   { key: "date", header: "Registro", render: (s) => s.registeredAt },
   {
@@ -558,14 +558,14 @@ export function StudentDetail() {
     <Shell>
       <PageHeader title={s.name} description={`${s.idCard} · ${s.email}`} />
       <div className="grid gap-5 md:grid-cols-3">
-        <StatsCard label="Cursos adquiridos" value={String(s.coursesEnrolled)} icon={BookOpen} />
+        <StatsCard label="Programas adquiridos" value={String(s.coursesEnrolled)} icon={BookOpen} />
         <StatsCard label="Progreso promedio" value="68%" icon={Activity} />
         <StatsCard label="Certificados" value="1" icon={FileBadge} />
       </div>
       <section className="surface-card mt-6 p-6">
         <h2 className="font-display font-semibold text-navy">Historial académico</h2>
         <p className="mt-3 text-sm text-muted-foreground">
-          Cursos, evaluaciones y certificados del estudiante se mostrarán aquí al conectar la API.
+          Programas, evaluaciones y certificados del estudiante se mostrarán aquí al conectar la API.
         </p>
       </section>
     </Shell>
@@ -612,7 +612,7 @@ export function EvaluationReview() {
         {[
           "¿Cuál es una función del proceso administrativo?",
           "¿Qué elementos pertenecen a la planificación estratégica?",
-          "La gestión empresarial articula procesos, personas y recursos.",
+          "La gestión empresarial articula procesos, personas y reProgramas.",
         ].map((q, i) => (
           <section key={q} className="surface-card p-5">
             <div className="flex justify-between gap-4">
@@ -718,7 +718,7 @@ export function GenericAdminPage({ type }: { type: "teachers" | "certificates" |
     type === "teachers"
       ? [
           "Docentes",
-          "Administra perfiles docentes y cursos asignados.",
+          "Administra perfiles docentes y Programas asignados.",
           teachers.map((t) => `${t.name} · ${t.area}`),
         ]
       : type === "certificates"
