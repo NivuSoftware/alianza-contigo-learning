@@ -10,6 +10,7 @@ from app.application.services.course_service import CourseService
 from app.presentation.auth_api import auth_api
 from app.presentation.payment_api import payment_api
 from app.presentation.exam_api import exam_api
+from app.infrastructure.demo_seed import seed_demo_courses
 
 
 def create_app(config_object=None) -> Flask:
@@ -59,5 +60,11 @@ def create_app(config_object=None) -> Flask:
         db.session.add(user)
         db.session.commit()
         print(f"Administrator {email} created.")
+
+    @app.cli.command("seed-demo-courses")
+    def seed_demo_courses_command():
+        """Create or refresh the three complete demonstration courses."""
+        count = seed_demo_courses()
+        print(f"{count} demonstration courses ready.")
 
     return app
