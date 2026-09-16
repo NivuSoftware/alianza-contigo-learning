@@ -12,6 +12,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { ACADEMY_PHONE_DISPLAY, ACADEMY_PHONE_E164, ACADEMY_WHATSAPP_URL } from "@/lib/contact";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserAvatar } from "@/components/shared/UserAvatar";
 import {
@@ -87,7 +88,11 @@ function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
-                  <UserAvatar initials={initials} tone={user.avatarKey} className="h-8 w-8" />
+                  <UserAvatar
+                    initials={initials}
+                    tone={user.avatarKey || "navy"}
+                    className="h-8 w-8"
+                  />
                   <span className="max-w-36 truncate">{user.firstName}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
@@ -148,7 +153,7 @@ function Header() {
                 ) : user ? (
                   <>
                     <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
-                      <UserAvatar initials={initials} tone={user.avatarKey} />
+                      <UserAvatar initials={initials} tone={user.avatarKey || "navy"} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-navy">{user.name}</p>
                         <p className="truncate text-xs text-muted-foreground">{user.email}</p>
@@ -198,7 +203,8 @@ function Footer() {
         <div className="md:col-span-2">
           <Logo variant="light" />
           <p className="mt-4 max-w-sm text-sm text-white/60">
-           Educación continua para desarrollar conocimientos y competencias, avanzar profesionalmente y transformar el aprendizaje en nuevas oportunidades.
+            Educación continua para desarrollar conocimientos y competencias, avanzar
+            profesionalmente y transformar el aprendizaje en nuevas oportunidades.
           </p>
           <p className="mt-6 text-xs tracking-[0.3em] text-gold">APRENDE | CRECE | TRASCIENDE</p>
         </div>
@@ -226,14 +232,39 @@ function Footer() {
           <h4 className="font-display text-sm font-semibold text-white">Contacto</h4>
           <ul className="mt-4 space-y-2 text-sm">
             <li>info@alianzacontigo.edu.ec</li>
-            <li>+593 99 000 0000</li>
+            <li>
+              <a href={`tel:${ACADEMY_PHONE_E164}`} className="transition-colors hover:text-white">
+                {ACADEMY_PHONE_DISPLAY}
+              </a>
+            </li>
+            <li>
+              <a
+                href={ACADEMY_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-white"
+              >
+                Escríbenos por WhatsApp
+              </a>
+            </li>
             <li>Juan José Flores y Guapondelig – Edificio Puntosol</li>
             <li>Cuenca Ecuador</li>
           </ul>
         </div>
       </div>
       <div className="border-t border-white/10 py-5 text-center text-xs text-white/40">
-        © 2026 Alianza Contigo — Educación Continua. Todos los derechos reservados.
+        <p>© 2026 Alianza Contigo — Educación Continua. Todos los derechos reservados.</p>
+        <a
+          href="https://www.nivusoftware.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center justify-center gap-2 text-xs text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        >
+          <img src="/assets/nube.png" alt="" className="h-4 w-5 object-contain" />
+          <span>
+            Desarrollado por <strong className="font-semibold text-white/70">Nivusoftware</strong>
+          </span>
+        </a>
       </div>
     </footer>
   );

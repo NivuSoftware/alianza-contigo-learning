@@ -141,7 +141,7 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
         completed_count = EnrollmentModel.query.filter(EnrollmentModel.completed_at.isnot(None)).count()
         approved_orders = PaymentOrderModel.query.filter_by(status="APPROVED").all()
         revenue = sum((order.amount or Decimal("0") for order in approved_orders), Decimal("0"))
-        pending_payments = PaymentOrderModel.query.filter_by(status="PENDING").count()
+        pending_payments = PaymentOrderModel.query.filter_by(status="PENDING", payment_method="TRANSFER").count()
         pending_evaluations = ExamAttemptModel.query.filter_by(status="PENDING_REVIEW").count()
 
         now = datetime.now(timezone.utc)

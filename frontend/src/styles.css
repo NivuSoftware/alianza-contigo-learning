@@ -4,6 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* PayPhone's stylesheet sets global :root and #root sizing. Keep the app viewport stable. */
+html {
+  font-size: 16px !important;
+}
+
+#root {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /*
  * Alianza Contigo — Design system
  * Navy #071C3A / #0E315C, Gold #C89432 / #D9AE55, light bg #F7F8FA

@@ -1,13 +1,39 @@
 import smtplib
 import ssl
 from email.message import EmailMessage
+from html import escape
 
 from flask import current_app
 
 
 def branded_html(title, greeting, body, action_label=None, action_url=None):
-    action = f'<a href="{action_url}" style="display:inline-block;background:#C89432;color:#071C3A;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;margin-top:18px">{action_label}</a>' if action_label and action_url else ""
-    return f'''<!doctype html><html><body style="margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#071C3A"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table width="600" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden"><tr><td style="background:#071C3A;padding:24px 32px;color:#fff"><strong style="font-size:19px">ALIANZA<span style="color:#D9AE55">CONTIGO</span></strong><div style="font-size:11px;color:#aeb8c8;margin-top:4px">EDUCACIÓN CONTINUA</div></td></tr><tr><td style="padding:32px"><h1 style="font-size:24px;margin:0 0 20px">{title}</h1><p style="font-size:15px;line-height:1.6">{greeting}</p><div style="font-size:15px;line-height:1.65;color:#344054">{body}</div>{action}</td></tr><tr><td style="background:#f7f8fa;padding:18px 32px;font-size:12px;color:#667085">Aprende · Crece · Trasciende</td></tr></table></td></tr></table></body></html>'''
+    action = ""
+    if action_label and action_url:
+        action = f'''<tr><td style="padding:4px 36px 36px">
+          <a href="{escape(action_url, quote=True)}" style="display:inline-block;background:#C89432;border-radius:9px;color:#071C3A;font-size:15px;font-weight:700;line-height:20px;padding:15px 24px;text-decoration:none">{escape(action_label)}</a>
+        </td></tr>'''
+    return f'''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0;padding:0;background:#F3F5F8;color:#071C3A;font-family:Arial,Helvetica,sans-serif">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#F3F5F8"><tr><td align="center" style="padding:40px 16px">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;border-collapse:separate;background:#ffffff;border:1px solid #E6EAF0;border-radius:16px;overflow:hidden">
+          <tr><td style="height:5px;background:#C89432;font-size:1px;line-height:1px">&nbsp;</td></tr>
+          <tr><td style="background:#071C3A;padding:27px 36px 25px">
+            <div style="color:#ffffff;font-size:21px;font-weight:800;letter-spacing:0.4px">ALIANZA<span style="color:#D9AE55">CONTIGO</span></div>
+            <div style="margin-top:6px;color:#B8C7D9;font-size:10px;font-weight:700;letter-spacing:3px">EDUCACIÓN CONTINUA</div>
+          </td></tr>
+          <tr><td style="padding:34px 36px 12px"><div style="color:#B0822F;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">ALIANZA CONTIGO</div>
+            <h1 style="margin:13px 0 0;color:#071C3A;font-size:26px;font-weight:700;line-height:1.25">{escape(title)}</h1></td></tr>
+          <tr><td style="padding:0 36px 8px"><p style="margin:0;color:#071C3A;font-size:16px;font-weight:600;line-height:1.7">{greeting}</p></td></tr>
+          <tr><td style="padding:6px 36px 28px"><div style="color:#405168;font-size:15px;line-height:1.75">{body}</div></td></tr>
+          {action}
+          <tr><td style="background:#F7F8FA;border-top:1px solid #E6EAF0;padding:24px 36px">
+            <div style="color:#071C3A;font-size:12px;font-weight:700">Aprende · Crece · Trasciende</div>
+            <div style="margin-top:9px;color:#667085;font-size:12px;line-height:1.6">¿Necesitas ayuda? <a href="mailto:nivusoftware@gmail.com" style="color:#0E315C;text-decoration:none">Escríbenos</a> o contáctanos al <a href="https://wa.me/593990448031" style="color:#0E315C;text-decoration:none">+593 99 044 8031</a>.</div>
+            <div style="margin-top:12px;color:#98A2B3;font-size:11px">Alianza Contigo · Educación Continua</div>
+          </td></tr>
+        </table>
+      </td></tr></table>
+    </body></html>'''
 
 
 def send_html(to, subject, html):

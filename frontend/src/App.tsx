@@ -1,4 +1,5 @@
-import { Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { Landing } from "@/routes/index";
 import { CoursesPage } from "@/routes/courses.index";
 import { CourseDetail } from "@/routes/courses.$slug";
@@ -9,6 +10,7 @@ import { TeacherDashboard, TeacherSection } from "@/pages/TeacherPages";
 import { TeacherManagementPage } from "@/pages/TeacherManagementPage";
 import { TeacherCoursePage } from "@/pages/TeacherCoursePage";
 import { PaymentOrdersPage } from "@/pages/PaymentOrdersPage";
+import { PayphoneResultPage } from "@/pages/PayphoneResultPage";
 import { RealCertificatesPage } from "@/pages/RealCertificatesPage";
 import { FinalExamPage } from "@/pages/FinalExamPage";
 import {
@@ -27,6 +29,12 @@ import {
 } from "@/pages/CourseManagementPages";
 
 export function App() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
@@ -34,6 +42,7 @@ export function App() {
       <Route path="/courses/:slug" element={<CourseDetail />} />
       <Route path="/nosotros" element={<AboutPage />} />
       <Route path="/contacto" element={<ContactPage />} />
+      <Route path="/pagar" element={<PayphoneResultPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/olvide-mi-contrasena" element={<ForgotPasswordPage />} />

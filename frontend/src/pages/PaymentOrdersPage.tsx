@@ -134,7 +134,7 @@ export function PaymentOrdersPage() {
           <p className="text-sm font-semibold">Integración PayPhone</p>
           <p className="mt-0.5 text-xs text-white/65">
             {summary?.payphone.configured
-              ? "Credenciales configuradas; la conciliación está lista para conectarse al checkout."
+              ? "Credenciales cargadas. Verifica el dominio y la URL de respuesta en PayPhone Developer."
               : "Pendiente de credenciales. La estructura de transacciones y conciliación ya está preparada."}
           </p>
         </div>
@@ -145,16 +145,18 @@ export function PaymentOrdersPage() {
               : "bg-amber-100 text-amber-900"
           }
         >
-          {summary?.payphone.configured ? "Preparado" : "Pendiente"}
+          {summary?.payphone.configured ? "Configurado" : "Pendiente"}
         </Badge>
       </div>
       <div className="mb-5 flex flex-wrap gap-2">
-        {[
-          ["PENDING", "Pendientes"],
-          ["APPROVED", "Aprobados"],
-          ["REJECTED", "Rechazados"],
-          ["", "Todos"],
-        ].map(([value, label]) => (
+        {(
+          [
+            ["PENDING", "Pendientes"],
+            ["APPROVED", "Aprobados"],
+            ["REJECTED", "Rechazados"],
+            ["", "Todos"],
+          ] as const
+        ).map(([value, label]) => (
           <Button
             key={label}
             size="sm"
@@ -205,7 +207,7 @@ export function PaymentOrdersPage() {
                         ? "Transferencia"
                         : order.paymentMethod === "PAYPHONE"
                           ? "PayPhone"
-                          : "Tarjeta simulada"}
+                          : "Tarjeta"}
                     </p>
                   </td>
                   <td className="p-4">
@@ -232,7 +234,7 @@ export function PaymentOrdersPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
-                      {order.status === "PENDING" && (
+                      {order.status === "PENDING" && order.paymentMethod === "TRANSFER" && (
                         <>
                           <Button
                             size="sm"

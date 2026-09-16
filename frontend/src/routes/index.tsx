@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ACADEMY_WHATSAPP_URL } from "@/lib/contact";
 import {
   ArrowRight,
   Award,
@@ -57,7 +58,8 @@ export function Landing() {
               Impulsa tu <span className="text-gradient-gold">crecimiento profesional</span>
             </h1>
             <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-              Programas de educación continua diseñados para desarrollar conocimientos y competencias aplicables a tu vida profesional.
+              Programas de educación continua diseñados para desarrollar conocimientos y
+              competencias aplicables a tu vida profesional.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -121,7 +123,8 @@ export function Landing() {
             Programas que impulsan tu crecimiento
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Elige el programa que se adapte a tus objetivos y aprende mediante contenidos, actividades y evaluaciones diseñadas para avanzar paso a paso.
+            Elige el programa que se adapte a tus objetivos y aprende mediante contenidos,
+            actividades y evaluaciones diseñadas para avanzar paso a paso.
           </p>
         </div>
 
@@ -167,7 +170,9 @@ export function Landing() {
               size="lg"
               className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
             >
-              <Link to="/contacto">Hablar con un asesor</Link>
+              <a href={ACADEMY_WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                Hablar con un asesor
+              </a>
             </Button>
           </div>
         </div>

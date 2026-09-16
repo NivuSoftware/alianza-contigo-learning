@@ -1,5 +1,14 @@
 import { FormEvent, useState } from "react";
-import { LoaderCircle, Mail, MapPin, Phone, ShieldCheck, Target, Users } from "lucide-react";
+import {
+  LoaderCircle,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Target,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { Button } from "@/components/ui/button";
@@ -7,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { usePublicCourses } from "@/hooks/use-public-courses";
 import { api, ApiError } from "@/lib/api";
+import { ACADEMY_PHONE_DISPLAY, ACADEMY_PHONE_E164, ACADEMY_WHATSAPP_URL } from "@/lib/contact";
 
 const Header = ({ title, text }: { title: string; text: string }) => (
   <section className="navy-gradient text-white">
@@ -92,17 +102,32 @@ export function ContactPage() {
       <section className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-8">
         <div className="space-y-6">
           {[
-            [Mail, "admisiones@alianzacontigo.ec"],
-            [Phone, "+593 2 000 0000"],
-            [MapPin, "Quito, Ecuador"],
-          ].map(([I, text]) => {
-            const Icon = I as typeof Mail;
+            {
+              icon: Mail,
+              label: "admisiones@alianzacontigo.ec",
+              href: "mailto:admisiones@alianzacontigo.ec",
+            },
+            { icon: Phone, label: ACADEMY_PHONE_DISPLAY, href: `tel:${ACADEMY_PHONE_E164}` },
+            { icon: MessageCircle, label: "Escríbenos por WhatsApp", href: ACADEMY_WHATSAPP_URL },
+            { icon: MapPin, label: "Cuenca, Ecuador", href: undefined },
+          ].map(({ icon: Icon, label, href }) => {
             return (
-              <div className="flex items-center gap-4" key={String(text)}>
+              <div className="flex items-center gap-4" key={label}>
                 <span className="grid h-11 w-11 place-items-center rounded-lg bg-accent text-gold">
-                  <Icon />
+                  <Icon aria-hidden="true" />
                 </span>
-                <span className="text-sm text-navy">{String(text)}</span>
+                {href ? (
+                  <a
+                    className="text-sm font-medium text-navy underline-offset-4 hover:underline"
+                    href={href}
+                    target={href === ACADEMY_WHATSAPP_URL ? "_blank" : undefined}
+                    rel={href === ACADEMY_WHATSAPP_URL ? "noopener noreferrer" : undefined}
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <span className="text-sm text-navy">{label}</span>
+                )}
               </div>
             );
           })}

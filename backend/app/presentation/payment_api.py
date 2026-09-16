@@ -1,10 +1,14 @@
 import os
 import uuid
+import json
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 from html import escape
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, redirect, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
@@ -36,7 +40,7 @@ def ensure_available(course_slug, student):
         return None, (jsonify({"message": "Este curso no está disponible."}), 404)
     if EnrollmentModel.query.filter_by(course_id=course.id, student_id=student.id).first():
         return None, (jsonify({"message": "Ya tienes acceso a este curso."}), 409)
-    pending = PaymentOrderModel.query.filter_by(course_id=course.id, student_id=student.id, status="PENDING").first()
+    pending = PaymentOrderModel.query.filter_by(course_id=course.id, student_id=student.id, payment_method="TRANSFER", status="PENDING").first()
     if pending:
         return None, (jsonify({"message": "Ya tienes una transferencia pendiente de validación."}), 409)
     return course, None
@@ -75,16 +79,107 @@ def card_checkout():
     course, failure = ensure_available(data.get("courseSlug"), student)
     if failure:
         return failure
-    digits = "".join(char for char in str(data.get("cardNumber", "")) if char.isdigit())
-    if len(digits) < 13 or len(str(data.get("cvv", ""))) < 3 or not data.get("cardholder"):
-        return jsonify({"message": "Completa correctamente los datos de la tarjeta."}), 400
-    paid_at = datetime.now(timezone.utc)
-    order = PaymentOrderModel(reference=f"CARD-{uuid.uuid4().hex[:10].upper()}", course=course, student=student, payment_method="CARD", provider="SIMULATED", currency="USD", amount=final_price(course), status="APPROVED", reviewed_at=paid_at, paid_at=paid_at)
+    token = current_app.config.get("PAYPHONE_TOKEN")
+    store_id = current_app.config.get("PAYPHONE_STORE_ID")
+    if not token or not store_id:
+        return jsonify({"message": "El pago con tarjeta no está disponible en este momento."}), 503
+    amount = final_price(course)
+    cents = int(amount * 100)
+    if cents <= 0:
+        return jsonify({"message": "El monto del curso no permite un pago con tarjeta."}), 400
+    order = PaymentOrderModel(reference=f"CARD-{uuid.uuid4().hex.upper()}", course=course, student=student, payment_method="PAYPHONE", provider="PAYPHONE", currency="USD", amount=amount, status="PENDING")
     db.session.add(order)
-    enroll(course, student)
     db.session.commit()
-    safe_send(student.email, "Tu inscripción está activa — Alianza Contigo", branded_html("¡Pago aprobado!", f"Hola {clean(student.first_name)},", f"Tu pago de <strong>${order.amount}</strong> para <strong>{clean(course.name)}</strong> fue aprobado. Ya puedes comenzar a estudiar.", "Ir a mi curso", f'{current_app.config["FRONTEND_URL"]}/app/classroom/{course.slug}'))
-    return jsonify({"message": "Pago simulado aprobado. Ya tienes acceso al curso.", "reference": order.reference, "redirect": f"/app/classroom/{course.slug}"}), 201
+    response = jsonify({"token": token, "storeId": store_id, "clientTransactionId": order.reference, "reference": f"Inscripción {course.name} · {order.reference}", "amount": cents, "amountWithoutTax": cents, "currency": "USD", "email": student.email})
+    response.headers["Cache-Control"] = "no-store"
+    return response, 201
+
+
+def payphone_result(transaction_id, client_tx_id):
+    query = urlencode({"id": transaction_id, "clientTransactionId": client_tx_id})
+    return redirect(f'{current_app.config["FRONTEND_URL"].rstrip("/")}/pagar?{query}', code=302)
+
+
+@payment_api.post("/payphone/confirm")
+@role_required("student")
+def payphone_confirm():
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({"message": "Datos de confirmación inválidos."}), 400
+    client_tx_id = data.get("clientTransactionId", "")
+    transaction_id = str(data.get("id", ""))
+    order = PaymentOrderModel.query.filter_by(reference=client_tx_id, provider="PAYPHONE", student_id=current_user().id).first()
+    if not order or not transaction_id.isdecimal() or int(transaction_id) <= 0:
+        return jsonify({"message": "No encontramos esta transacción PayPhone."}), 400
+    status = confirm_payphone_order(order, transaction_id)
+    paid_at = order.paid_at
+    if paid_at and paid_at.tzinfo is None:
+        paid_at = paid_at.replace(tzinfo=timezone.utc)
+    messages = {
+        "approved": "Pago aprobado. Ya tienes acceso al curso.",
+        "rejected": order.rejection_comment or "PayPhone canceló o rechazó la transacción.",
+        "error": "No pudimos confirmar el pago con PayPhone. Contacta a soporte si recibiste un cobro.",
+    }
+    return jsonify({"status": status, "message": messages[status], "reference": order.reference, "courseName": order.course.name, "courseSlug": order.course.slug, "amount": float(order.amount), "currency": order.currency, "providerTransactionId": order.provider_transaction_id, "paidAt": paid_at.isoformat() if paid_at else None, "redirect": f"/app/classroom/{order.course.slug}" if status == "approved" else None}), 200 if status != "error" else 502
+
+
+@payment_api.get("/payphone/return")
+def payphone_return():
+    """Compatibility return URL for applications configured with the backend URL."""
+    client_tx_id = request.args.get("clientTransactionId", "")
+    transaction_id = request.args.get("id", "")
+    return payphone_result(transaction_id, client_tx_id)
+
+
+def confirm_payphone_order(order, transaction_id):
+    if order.status == "APPROVED":
+        return "approved" if order.provider_transaction_id == transaction_id else "error"
+    if order.status == "REJECTED":
+        return "rejected" if order.provider_transaction_id == transaction_id else "error"
+    token = current_app.config.get("PAYPHONE_TOKEN")
+    if not token:
+        current_app.logger.error("PayPhone no está configurado para confirmar pagos")
+        return "error"
+    payload = json.dumps({"id": int(transaction_id), "clientTxId": order.reference}).encode("utf-8")
+    confirmation_request = Request(
+        "https://paymentbox.payphonetodoesposible.com/api/confirm",
+        data=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(confirmation_request, timeout=15) as response:
+            confirmation = json.load(response)
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        current_app.logger.exception("No se pudo confirmar la transacción PayPhone %s", order.reference)
+        return "error"
+    if not isinstance(confirmation, dict):
+        current_app.logger.error("Respuesta PayPhone inválida para %s", order.reference)
+        return "error"
+    if str(confirmation.get("clientTransactionId")) != order.reference or str(confirmation.get("transactionId")) != transaction_id:
+        current_app.logger.error("Respuesta PayPhone inconsistente para %s", order.reference)
+        return "error"
+    if confirmation.get("statusCode") == 3 and confirmation.get("transactionStatus") == "Approved":
+        if confirmation.get("currency") != "USD" or confirmation.get("amount") != int(order.amount * 100):
+            current_app.logger.error("Monto o moneda PayPhone inconsistente para %s", order.reference)
+            return "error"
+        order.status = "APPROVED"
+        order.provider_transaction_id = transaction_id
+        order.paid_at = datetime.now(timezone.utc)
+        order.reviewed_at = order.paid_at
+        enroll(order.course, order.student)
+        db.session.commit()
+        safe_send(order.student.email, "Tu inscripción está activa — Alianza Contigo", branded_html("¡Pago aprobado!", f"Hola {clean(order.student.first_name)},", f"Tu pago de <strong>${order.amount}</strong> para <strong>{clean(order.course.name)}</strong> fue aprobado. Ya puedes comenzar a estudiar.", "Ir a mi curso", f'{current_app.config["FRONTEND_URL"]}/app/classroom/{order.course.slug}'))
+        return "approved"
+    if confirmation.get("statusCode") == 2 or confirmation.get("transactionStatus") == "Canceled":
+        order.status = "REJECTED"
+        order.provider_transaction_id = transaction_id
+        order.rejection_comment = str(confirmation.get("message") or "PayPhone canceló o rechazó la transacción.")[:500]
+        order.reviewed_at = datetime.now(timezone.utc)
+        db.session.commit()
+        return "rejected"
+    current_app.logger.error("Estado PayPhone desconocido para %s", order.reference)
+    return "error"
 
 
 @payment_api.post("/transfer")
@@ -118,6 +213,8 @@ def list_orders():
     query = PaymentOrderModel.query
     if status in {"PENDING", "APPROVED", "REJECTED"}:
         query = query.filter_by(status=status)
+    if status == "PENDING":
+        query = query.filter_by(payment_method="TRANSFER")
     return jsonify({"orders": [serialize_order(order) for order in query.order_by(PaymentOrderModel.created_at.desc()).all()]})
 
 
@@ -152,9 +249,9 @@ def payment_summary():
     return jsonify(
         {
             "receivedTotal": total_for("APPROVED"),
-            "pendingTotal": total_for("PENDING"),
+            "pendingTotal": float(db.session.query(func.coalesce(func.sum(PaymentOrderModel.amount), 0)).filter(PaymentOrderModel.status == "PENDING", PaymentOrderModel.payment_method == "TRANSFER").scalar()),
             "approvedCount": counts["APPROVED"],
-            "pendingCount": counts["PENDING"],
+            "pendingCount": PaymentOrderModel.query.filter_by(status="PENDING", payment_method="TRANSFER").count(),
             "rejectedCount": counts["REJECTED"],
             "byMethod": [
                 {"method": method, "count": count, "total": float(total)}
@@ -172,7 +269,7 @@ def payment_summary():
 @role_required("admin")
 def review_order(order_id):
     order = db.session.get(PaymentOrderModel, uuid.UUID(order_id))
-    if not order or order.status != "PENDING":
+    if not order or order.status != "PENDING" or order.payment_method != "TRANSFER":
         return jsonify({"message": "Este pedido ya fue procesado o no existe."}), 400
     data = request.get_json(silent=True) or {}
     decision = data.get("decision")

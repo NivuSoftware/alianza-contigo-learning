@@ -1,4 +1,5 @@
 from io import BytesIO
+import json
 from tempfile import TemporaryDirectory
 
 from app import create_app
@@ -33,6 +34,8 @@ class PaymentTestConfig:
     BANK_ACCOUNT_NUMBER = "123456"
     BANK_ACCOUNT_HOLDER = "Alianza Contigo"
     BANK_ACCOUNT_ID = "0999999999"
+    PAYPHONE_TOKEN = "test-payphone-token"
+    PAYPHONE_STORE_ID = "test-store-id"
 
 
 def build_client(upload_folder):
@@ -136,22 +139,50 @@ def login(web, email, role):
     )
 
 
-def test_card_approves_and_enrolls_student_immediately():
+def test_card_only_enrolls_after_payphone_confirms(monkeypatch):
     with TemporaryDirectory() as uploads:
         web = build_client(uploads)
         assert login(web, "ana@example.com", "student").status_code == 200
         response = web.post(
             "/api/v1/payments/card",
-            json={
-                "courseSlug": "curso-tarjeta",
-                "cardholder": "Ana Torres",
-                "cardNumber": "4242 4242 4242 4242",
-                "expiry": "12/30",
-                "cvv": "123",
-            },
+            json={"courseSlug": "curso-tarjeta"},
         )
         assert response.status_code == 201
-        assert response.json["redirect"] == "/app/classroom/curso-tarjeta"
+        assert response.json["amount"] == 9000
+        assert response.json["amountWithoutTax"] == 9000
+        reference = response.json["clientTransactionId"]
+        with web.application.app_context():
+            assert PaymentOrderModel.query.one().status == "PENDING"
+            assert EnrollmentModel.query.count() == 0
+
+        class ConfirmResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return json.dumps({"clientTransactionId": reference, "transactionId": 12345, "statusCode": 3, "transactionStatus": "Approved", "amount": 9000, "currency": "USD"}).encode()
+
+        monkeypatch.setattr("app.presentation.payment_api.urlopen", lambda *_args, **_kwargs: ConfirmResponse())
+        confirmed = web.post("/api/v1/payments/payphone/confirm", json={"id": 12345, "clientTransactionId": reference})
+        assert confirmed.status_code == 200
+        assert confirmed.json["status"] == "approved"
+        assert confirmed.json["redirect"] == "/app/classroom/curso-tarjeta"
+        assert confirmed.json["courseName"] == "Curso tarjeta"
+        assert confirmed.json["amount"] == 90.0
+        assert confirmed.json["providerTransactionId"] == "12345"
+        repeated = web.post("/api/v1/payments/payphone/confirm", json={"id": 12345, "clientTransactionId": reference})
+        assert repeated.json["status"] == "approved"
+        legacy_return = web.get(f"/api/v1/payments/payphone/return?id=12345&clientTransactionId={reference}")
+        assert "/pagar?id=12345" in legacy_return.location
+        assert f"clientTransactionId={reference}" in legacy_return.location
+        with web.application.app_context():
+            order = PaymentOrderModel.query.one()
+            assert order.status == "APPROVED"
+            assert order.provider_transaction_id == "12345"
+            assert EnrollmentModel.query.count() == 1
         enrollments = web.get("/api/v1/student/enrollments")
         assert enrollments.status_code == 200
         assert enrollments.json["enrollments"][0]["course"]["slug"] == "curso-tarjeta"
@@ -201,7 +232,7 @@ def test_card_approves_and_enrolls_student_immediately():
         assert payment_summary.status_code == 200
         assert payment_summary.json["receivedTotal"] == 90.0
         assert payment_summary.json["approvedCount"] == 1
-        assert payment_summary.json["payphone"]["status"] == "PENDING_CONFIGURATION"
+        assert payment_summary.json["payphone"]["status"] == "READY"
         dashboard = web.get("/api/v1/admin/dashboard")
         assert dashboard.status_code == 200
         assert dashboard.json["stats"]["students"] == 1
@@ -293,3 +324,40 @@ def test_transfer_only_enrolls_after_admin_approval():
         detail = web.get(f'/api/v1/admin/students/{students.json["students"][0]["id"]}')
         assert detail.status_code == 200
         assert detail.json["enrollments"][0]["course"]["slug"] == "curso-transferencia"
+
+
+def test_payphone_never_enrolls_for_wrong_amount_or_cancelled_payment(monkeypatch):
+    with TemporaryDirectory() as uploads:
+        web = build_client(uploads)
+        assert login(web, "ana@example.com", "student").status_code == 200
+        reference = web.post("/api/v1/payments/card", json={"courseSlug": "curso-tarjeta"}).json["clientTransactionId"]
+
+        class ConfirmResponse:
+            def __init__(self, details):
+                self.details = details
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return json.dumps(self.details).encode()
+
+        common = {"clientTransactionId": reference, "transactionId": 777, "currency": "USD"}
+        wrong_amount = {**common, "statusCode": 3, "transactionStatus": "Approved", "amount": 100}
+        monkeypatch.setattr("app.presentation.payment_api.urlopen", lambda *_args, **_kwargs: ConfirmResponse(wrong_amount))
+        mismatch = web.post("/api/v1/payments/payphone/confirm", json={"id": 777, "clientTransactionId": reference})
+        assert mismatch.status_code == 502
+        with web.application.app_context():
+            assert PaymentOrderModel.query.one().status == "PENDING"
+            assert EnrollmentModel.query.count() == 0
+
+        cancelled = {**common, "statusCode": 2, "transactionStatus": "Canceled", "amount": 9000}
+        monkeypatch.setattr("app.presentation.payment_api.urlopen", lambda *_args, **_kwargs: ConfirmResponse(cancelled))
+        rejected = web.post("/api/v1/payments/payphone/confirm", json={"id": 777, "clientTransactionId": reference})
+        assert rejected.json["status"] == "rejected"
+        with web.application.app_context():
+            assert PaymentOrderModel.query.one().status == "REJECTED"
+            assert EnrollmentModel.query.count() == 0

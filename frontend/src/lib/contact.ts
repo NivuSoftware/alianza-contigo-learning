@@ -1,0 +1,3 @@
+export const ACADEMY_PHONE_DISPLAY = "+593 99 044 8031";
+export const ACADEMY_PHONE_E164 = "+593990448031";
+export const ACADEMY_WHATSAPP_URL = "https://wa.me/593990448031";

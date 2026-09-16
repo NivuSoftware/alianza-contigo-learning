@@ -1,6 +1,14 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Building2, CheckCircle2, CreditCard, Loader2, LockKeyhole, Upload } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  Loader2,
+  LockKeyhole,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -11,7 +19,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, apiForm, ApiError } from "@/lib/api";
@@ -27,7 +34,57 @@ interface BankDetails {
 interface CheckoutResponse {
   message: string;
   reference: string;
-  redirect?: string;
+  redirect?: string | null;
+}
+interface PayphoneCheckout {
+  token: string;
+  storeId: string;
+  clientTransactionId: string;
+  reference: string;
+  amount: number;
+  amountWithoutTax: number;
+  currency: "USD";
+  email: string;
+}
+
+declare global {
+  interface Window {
+    PPaymentButtonBox?: new (
+      options: PayphoneCheckout & {
+        lang: string;
+        defaultMethod: string;
+        timeZone: number;
+        isAsyncResponse: boolean;
+        showPaymentMethodSelector: boolean;
+        showPayphonePayment: boolean;
+        showCashPayment: boolean;
+        showClickToPay: boolean;
+      },
+    ) => {
+      render: (id: string) => void;
+    };
+  }
+}
+
+const PAYPHONE_CDN = "https://cdn.payphonetodoesposible.com/box/v2.0";
+
+function loadPayphoneSdk(): Promise<void> {
+  if (!document.querySelector('link[data-payphone-box="true"]')) {
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = `${PAYPHONE_CDN}/payphone-payment-box.css`;
+    stylesheet.dataset["payphoneBox"] = "true";
+    document.head.appendChild(stylesheet);
+  }
+  if (window.PPaymentButtonBox) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = `${PAYPHONE_CDN}/payphone-payment-box.js`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("No se pudo cargar PayPhone."));
+    document.head.appendChild(script);
+  });
 }
 
 export function EnrollDialog({
@@ -44,18 +101,78 @@ export function EnrollDialog({
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const proofInputId = useId();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [complete, setComplete] = useState<CheckoutResponse | null>(null);
   const [bank, setBank] = useState<BankDetails | null>(null);
   const [proof, setProof] = useState<File | null>(null);
-  const [card, setCard] = useState({ cardholder: "", cardNumber: "", expiry: "", cvv: "" });
+  const [payphone, setPayphone] = useState<PayphoneCheckout | null>(null);
+  const [payphoneError, setPayphoneError] = useState("");
+  const [validating, setValidating] = useState(false);
+  const [uncertainPayment, setUncertainPayment] = useState(false);
   useEffect(() => {
     if (open && user?.role === "student")
       api<BankDetails>("/payments/bank-details")
         .then(setBank)
         .catch(() => undefined);
   }, [open, user]);
+  useEffect(() => {
+    if (!open || !payphone) return undefined;
+    let cancelled = false;
+    const onPaymentResult = (event: Event) => {
+      const detail: unknown = (event as CustomEvent<unknown>).detail;
+      if (typeof detail === "string") {
+        if (detail !== "errorValidation")
+          setPayphoneError(
+            "PayPhone no pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.",
+          );
+        return;
+      }
+      if (!detail || typeof detail !== "object") return;
+      const result = detail as { transactionId?: number | string; clientTransactionId?: string };
+      if (!result.transactionId || result.clientTransactionId !== payphone.clientTransactionId) {
+        setUncertainPayment(true);
+        setPayphoneError(
+          "PayPhone no devolvió una transacción válida. Contacta a soporte si recibiste un cobro.",
+        );
+        return;
+      }
+      setValidating(true);
+      setPayphoneError("");
+      const query = new URLSearchParams({
+        id: String(result.transactionId),
+        clientTransactionId: result.clientTransactionId,
+      });
+      navigate(`/pagar?${query.toString()}`);
+    };
+    window.addEventListener("processPaymentAsync", onPaymentResult);
+    loadPayphoneSdk()
+      .then(() => {
+        if (cancelled) return;
+        const ButtonBox = window.PPaymentButtonBox;
+        if (!ButtonBox) throw new Error("PayPhone no está disponible en este navegador.");
+        new ButtonBox({
+          ...payphone,
+          lang: "es",
+          defaultMethod: "card",
+          timeZone: -5,
+          isAsyncResponse: true,
+          showPaymentMethodSelector: false,
+          showPayphonePayment: false,
+          showCashPayment: false,
+          showClickToPay: false,
+        }).render("pp-button");
+      })
+      .catch((error: unknown) => {
+        if (!cancelled)
+          setPayphoneError(error instanceof Error ? error.message : "No se pudo cargar PayPhone.");
+      });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("processPaymentAsync", onPaymentResult);
+    };
+  }, [open, payphone, navigate]);
   function changeOpen(next: boolean) {
     if (next && !user) {
       navigate("/login", { state: { from: location.pathname, checkout: courseSlug } });
@@ -67,16 +184,24 @@ export function EnrollDialog({
       return;
     }
     setOpen(next);
-    if (!next) setComplete(null);
+    if (!next) {
+      setComplete(null);
+      setPayphone(null);
+      setPayphoneError("");
+      setValidating(false);
+      setUncertainPayment(false);
+    }
   }
   async function payCard() {
     setLoading(true);
     try {
-      const result = await api<CheckoutResponse>("/payments/card", {
+      const result = await api<PayphoneCheckout>("/payments/card", {
         method: "POST",
-        body: JSON.stringify({ courseSlug, ...card }),
+        body: JSON.stringify({ courseSlug }),
       });
-      setComplete(result);
+      setPayphone(result);
+      setPayphoneError("");
+      setUncertainPayment(false);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : "No se pudo procesar el pago");
     } finally {
@@ -84,7 +209,10 @@ export function EnrollDialog({
     }
   }
   async function sendTransfer() {
-    if (!proof) return toast.error("Carga tu comprobante de pago.");
+    if (!proof) {
+      toast.error("Carga tu comprobante de pago.");
+      return;
+    }
     setLoading(true);
     try {
       const body = new FormData();
@@ -111,17 +239,13 @@ export function EnrollDialog({
         {complete ? (
           <div className="py-8 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
-            <h3 className="mt-4 text-xl font-semibold text-navy">Solicitud registrada</h3>
+            <h3 className="mt-4 text-xl font-semibold text-navy">Comprobante recibido</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
               {complete.message}
             </p>
             <p className="mt-3 text-xs font-medium text-navy">Referencia {complete.reference}</p>
-            <Button
-              className="mt-6"
-              variant="gold"
-              onClick={() => (complete.redirect ? navigate(complete.redirect) : setOpen(false))}
-            >
-              {complete.redirect ? "Comenzar a estudiar" : "Entendido"}
+            <Button className="mt-6" variant="gold" onClick={() => setOpen(false)}>
+              Entendido
             </Button>
           </div>
         ) : (
@@ -137,60 +261,46 @@ export function EnrollDialog({
               </TabsTrigger>
             </TabsList>
             <TabsContent value="card" className="mt-5 space-y-4">
-              <div className="rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                Modo de prueba: no se realizará ningún cobro real. Una tarjeta válida de prueba
-                aprobará la inscripción.
-              </div>
-              <div className="space-y-2">
-                <Label>Nombre en la tarjeta</Label>
-                <Input
-                  value={card.cardholder}
-                  onChange={(e) => setCard({ ...card, cardholder: e.target.value })}
-                  placeholder="Como aparece en la tarjeta"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Número de tarjeta</Label>
-                <Input
-                  inputMode="numeric"
-                  value={card.cardNumber}
-                  onChange={(e) => setCard({ ...card, cardNumber: e.target.value })}
-                  placeholder="4242 4242 4242 4242"
-                  maxLength={19}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Vencimiento</Label>
-                  <Input
-                    value={card.expiry}
-                    onChange={(e) => setCard({ ...card, expiry: e.target.value })}
-                    placeholder="MM/AA"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>CVV</Label>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    value={card.cvv}
-                    onChange={(e) => setCard({ ...card, cvv: e.target.value })}
-                    placeholder="123"
-                    maxLength={4}
-                  />
-                </div>
-              </div>
-              <Button
-                variant="gold"
-                className="w-full"
-                disabled={loading}
-                onClick={() => void payCard()}
-              >
-                {loading ? <Loader2 className="animate-spin" /> : <LockKeyhole />}Pagar $
-                {amount.toFixed(2)}
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Paga de forma segura con PayPhone. Los datos de tu tarjeta se ingresan directamente
+                en su Cajita de Pagos.
+              </p>
+              {payphone ? (
+                <>
+                  <div id="pp-button" />
+                  {validating && (
+                    <p className="text-sm font-medium text-navy">
+                      <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                      Abriendo la verificación del pago…
+                    </p>
+                  )}
+                  {payphoneError && <p className="text-sm text-destructive">{payphoneError}</p>}
+                  {!uncertainPayment && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setPayphone(null);
+                        setPayphoneError("");
+                      }}
+                    >
+                      Generar una nueva cajita
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button
+                  variant="gold"
+                  className="w-full"
+                  disabled={loading}
+                  onClick={() => void payCard()}
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : <LockKeyhole />}Pagar $
+                  {amount.toFixed(2)} con PayPhone
+                </Button>
+              )}
               <p className="text-center text-xs text-muted-foreground">
-                Pago simulado y acceso inmediato
+                Tu acceso se habilita después de confirmar el pago.
               </p>
             </TabsContent>
             <TabsContent value="transfer" className="mt-5 space-y-4">
@@ -211,14 +321,39 @@ export function EnrollDialog({
                   </dl>
                 </div>
               )}
-              <div className="space-y-2">
-                <Label>Comprobante de pago</Label>
-                <Input
+              <div className="space-y-3 rounded-xl border border-gold/30 bg-gold/5 p-4">
+                <div>
+                  <p className="font-semibold text-navy">Adjunta tu comprobante de pago</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                    Selecciona la foto o el PDF de tu transferencia para solicitar la validación.
+                  </p>
+                </div>
+                <input
+                  id={proofInputId}
+                  className="sr-only peer"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,application/pdf"
                   onChange={(e) => setProof(e.target.files?.[0] || null)}
                 />
-                <p className="text-xs text-muted-foreground">PDF, JPG, PNG o WebP.</p>
+                <Label
+                  htmlFor={proofInputId}
+                  className="flex min-h-20 cursor-pointer items-center gap-3 rounded-lg border border-gold/50 bg-white px-4 py-3 transition-colors hover:border-gold hover:bg-gold/5 peer-focus-visible:ring-2 peer-focus-visible:ring-gold"
+                >
+                  {proof ? (
+                    <FileText className="h-6 w-6 shrink-0 text-emerald-600" />
+                  ) : (
+                    <Upload className="h-6 w-6 shrink-0 text-gold" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-navy">
+                      {proof ? "Comprobante seleccionado" : "Elegir archivo"}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {proof ? proof.name : "Haz clic para buscarlo en tu dispositivo"}
+                    </span>
+                  </span>
+                </Label>
+                <p className="text-xs text-muted-foreground">Formatos: PDF, JPG, PNG o WebP.</p>
               </div>
               <Button
                 className="w-full"

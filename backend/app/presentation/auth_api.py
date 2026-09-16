@@ -1,10 +1,8 @@
 import re
-import smtplib
-import ssl
 import uuid
 from datetime import datetime, timezone
-from email.message import EmailMessage
 from functools import wraps
+from html import escape
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import (
@@ -14,6 +12,7 @@ from flask_jwt_extended import (
 )
 
 from app.extensions import db
+from app.infrastructure.email_service import branded_html, send_html
 from app.infrastructure.persistence.models import UserModel
 
 auth_api = Blueprint("auth", __name__)
@@ -142,19 +141,17 @@ def logout():
 
 
 def send_reset_email(user, token):
-    if not current_app.config["EMAIL_ADDRESS"] or not current_app.config["EMAIL_PASSWORD"]:
-        current_app.logger.warning("SMTP no configurado; enlace de recuperación no enviado")
-        return
     link = f'{current_app.config["FRONTEND_URL"]}/restablecer-contrasena?token={token}'
-    message = EmailMessage()
-    message["Subject"] = "Restablece tu contraseña — Alianza Contigo"
-    message["From"] = current_app.config["MAIL_SENDER"]
-    message["To"] = user.email
-    message.set_content(f"Hola {user.first_name},\n\nSolicitaste restablecer tu contraseña. Este enlace vence en 30 minutos:\n{link}\n\nSi no fuiste tú, ignora este mensaje.")
-    with smtplib.SMTP(current_app.config["SMTP_SERVER"], current_app.config["SMTP_PORT"], timeout=10) as smtp:
-        smtp.starttls(context=ssl.create_default_context())
-        smtp.login(current_app.config["EMAIL_ADDRESS"], current_app.config["EMAIL_PASSWORD"])
-        smtp.send_message(message)
+    html = branded_html(
+        "Restablece tu contraseña",
+        f"Hola {escape(user.first_name)},",
+        "Recibimos una solicitud para cambiar la contraseña de tu cuenta. Usa el botón para crear una nueva. "
+        "<div style='margin-top:20px;padding:16px 18px;background:#F7F8FA;border-left:3px solid #C89432;border-radius:6px;color:#405168;font-size:13px'>"
+        "Este enlace vence en <strong>30 minutos</strong>. Si no solicitaste el cambio, puedes ignorar este correo; tu contraseña seguirá igual.</div>",
+        "Crear nueva contraseña",
+        link,
+    )
+    return send_html(user.email, "Restablece tu contraseña — Alianza Contigo", html)
 
 
 @auth_api.post("/forgot-password")

@@ -23,7 +23,7 @@ def _fit_font(text, font_name, preferred_size, max_width, minimum=15):
 
 def _draw_logo(pdf, page_width, page_height):
     logo_path = Path(__file__).resolve().parents[1] / "assets" / "logo_cert.png"
-    if not logo_path.exists():
+    if not logo_path.exists() or logo_path.stat().st_size == 0:
         logo_path = Path(__file__).resolve().parents[3] / "frontend" / "src" / "assets" / "logo_cert.png"
     if logo_path.exists():
         image = Image.open(logo_path).convert("RGB")
