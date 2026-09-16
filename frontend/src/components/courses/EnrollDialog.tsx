@@ -314,7 +314,7 @@ export function EnrollDialog({
                     <dd className="font-medium">{bank.accountNumber}</dd>
                     <dt className="text-muted-foreground">Titular</dt>
                     <dd>{bank.holder}</dd>
-                    <dt className="text-muted-foreground">Identificación</dt>
+                    <dt className="text-muted-foreground">RUC</dt>
                     <dd>{bank.holderId}</dd>
                     <dt className="text-muted-foreground">Valor</dt>
                     <dd className="font-semibold text-navy">${amount.toFixed(2)}</dd>
