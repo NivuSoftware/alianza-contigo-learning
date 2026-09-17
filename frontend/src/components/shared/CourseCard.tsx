@@ -36,6 +36,9 @@ export function CourseCard({ course }: { course: Course }) {
       </div>
 
       <div className="flex flex-1 flex-col p-5">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold-dark">
+          Área de formación · {course.trainingArea.name}
+        </p>
         <h3 className="font-display text-lg font-semibold text-navy">{course.name}</h3>
         <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{course.shortDescription}</p>
 

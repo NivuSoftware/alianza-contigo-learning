@@ -50,10 +50,12 @@ import type {
   LessonType,
   LmsCourse,
   ModuleDraft,
+  TrainingArea,
 } from "@/types/lms";
 
 const emptyCourse = {
   name: "",
+  trainingAreaId: "",
   shortDescription: "",
   fullDescription: "",
   coverUrl: "",
@@ -190,6 +192,9 @@ export function CourseAdminList({ teacher = false }: { teacher?: boolean }) {
                     <p className="text-xs text-muted-foreground">
                       {c.modality} · {c.duration}
                     </p>
+                    <p className="mt-1 text-xs font-medium text-gold-dark">
+                      Área de formación · {c.trainingArea.name}
+                    </p>
                   </td>
                   <td className="p-4">
                     <p>{money.format(c.finalPrice)}</p>
@@ -293,10 +298,18 @@ export function CourseDataForm() {
   const [loading, setLoading] = useState(Boolean(slug));
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [trainingAreas, setTrainingAreas] = useState<TrainingArea[]>([]);
+  useEffect(() => {
+    api<TrainingArea[]>("/training-areas")
+      .then(setTrainingAreas)
+      .catch(() => toast.error("No se pudieron cargar las áreas de formación"));
+  }, []);
   useEffect(() => {
     if (slug)
       api<LmsCourse>(`/courses/${slug}/author`)
-        .then((c) => setForm({ ...c, coverUrl: c.coverUrl || "" }))
+        .then((c) =>
+          setForm({ ...c, trainingAreaId: c.trainingArea.id, coverUrl: c.coverUrl || "" }),
+        )
         .catch(() => toast.error("No se pudo cargar el curso"))
         .finally(() => setLoading(false));
   }, [slug]);
@@ -335,6 +348,29 @@ export function CourseDataForm() {
             value={String(form.name)}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
+        </Field>
+        <Field label="Área de formación">
+          <Select
+            required
+            value={String(form.trainingAreaId)}
+            onValueChange={(trainingAreaId) => setForm({ ...form, trainingAreaId })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona un área" />
+            </SelectTrigger>
+            <SelectContent>
+              {trainingAreas.map((area) => (
+                <SelectItem key={area.id} value={area.id}>
+                  {area.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {trainingAreas.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Crea primero un área desde Áreas de formación.
+            </p>
+          )}
         </Field>
         <Field label="Descripción corta" wide>
           <Input
@@ -447,7 +483,7 @@ export function CourseDataForm() {
           )}
         </Field>
         <div className="flex items-end">
-          <Button type="submit" variant="gold" disabled={saving}>
+          <Button type="submit" variant="gold" disabled={saving || !form.trainingAreaId}>
             <Save /> {saving ? "Guardando..." : "Guardar y editar contenido"}
           </Button>
         </div>

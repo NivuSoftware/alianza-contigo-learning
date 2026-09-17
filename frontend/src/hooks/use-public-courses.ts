@@ -15,6 +15,7 @@ export function toPublicCourse(course: LmsCourse): Course {
     id: course.id,
     slug: course.slug,
     name: course.name,
+    trainingArea: course.trainingArea,
     shortDescription: course.shortDescription,
     fullDescription: course.fullDescription || course.shortDescription,
     endorsements: course.endorsement ? [course.endorsement] : [],

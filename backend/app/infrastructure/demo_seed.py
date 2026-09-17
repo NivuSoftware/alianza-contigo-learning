@@ -7,6 +7,7 @@ from app.infrastructure.persistence.models import (
     ExamQuestionModel,
     FinalExamModel,
     LessonModel,
+    TrainingAreaModel,
 )
 
 
@@ -90,12 +91,18 @@ DEMO_COURSES = [
 
 
 def seed_demo_courses():
+    training_area = TrainingAreaModel.query.filter_by(name="Formación general").first()
+    if training_area is None:
+        training_area = TrainingAreaModel(name="Formación general")
+        db.session.add(training_area)
+        db.session.flush()
     for spec in DEMO_COURSES:
         course = CourseModel.query.filter_by(slug=spec["slug"]).first()
         if course is None:
             course = CourseModel(slug=spec["slug"])
             db.session.add(course)
         course.name = spec["name"]
+        course.training_area = training_area
         course.short_description = spec["short_description"]
         course.full_description = spec["full_description"]
         course.modality = "Virtual · A tu ritmo"

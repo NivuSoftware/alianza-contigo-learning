@@ -21,6 +21,7 @@ import {
 } from "@/pages/RealStudentPages";
 import { AdminDashboard } from "@/pages/AdminPages";
 import { AdminEvaluationsPage } from "@/pages/AdminEvaluationsPage";
+import { TrainingAreasPage } from "@/pages/TrainingAreasPage";
 import { RealStudentDetail, RealStudentsPage } from "@/pages/RealAdminStudentsPage";
 import {
   CourseAdminList,
@@ -136,6 +137,14 @@ export function App() {
         element={
           <ProtectedRoute role="admin">
             <CourseContentBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/training-areas"
+        element={
+          <ProtectedRoute role="admin">
+            <TrainingAreasPage />
           </ProtectedRoute>
         }
       />

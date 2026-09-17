@@ -13,7 +13,7 @@ from markupsafe import escape
 
 from app.application.services.course_service import CourseService
 from app.extensions import db
-from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamAttemptModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, PaymentOrderModel, UserModel
+from app.infrastructure.persistence.models import CourseModel, CourseModuleModel, EnrollmentModel, ExamAttemptModel, ExamQuestionModel, FinalExamModel, LessonModel, LessonProgressModel, PaymentOrderModel, TrainingAreaModel, UserModel
 from app.presentation.auth_api import role_required
 from app.infrastructure.email_service import branded_html, send_html
 
@@ -42,6 +42,7 @@ def serialize_exam(exam, include_answers=False):
 
 def serialize_course(course, detailed=False, include_answers=False):
     data = {"id": str(course.id), "slug": course.slug, "name": course.name, "shortDescription": course.short_description, "fullDescription": course.full_description, "coverUrl": course.cover_url, "modality": course.modality, "duration": course.duration, "certification": course.certification, "endorsement": course.endorsement, "price": float(course.price), "discountPercent": course.discount_percent, "finalPrice": round(float(course.price) * (100 - course.discount_percent) / 100, 2), "status": course.status, "modulesCount": len(course.modules), "lessonsCount": sum(len(item.lessons) for item in course.modules), "hasFinalExam": course.final_exam is not None and len(course.final_exam.questions) > 0}
+    data["trainingArea"] = {"id": str(course.training_area.id), "name": course.training_area.name}
     if detailed:
         data["modules"] = [serialize_module(item) for item in course.modules]
         data["finalExam"] = serialize_exam(course.final_exam, include_answers)
@@ -229,6 +230,60 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
         rows = CourseModel.query.filter_by(status="ACTIVO").order_by(CourseModel.updated_at.desc()).all()
         return jsonify([serialize_course(row) for row in rows])
 
+    @api.get("/training-areas")
+    def list_training_areas():
+        rows = TrainingAreaModel.query.order_by(TrainingAreaModel.name.asc()).all()
+        return jsonify([{"id": str(row.id), "name": row.name, "coursesCount": len(row.courses)} for row in rows])
+
+    @api.post("/training-areas")
+    @role_required("admin")
+    def create_training_area():
+        name = ((request.get_json(silent=True) or {}).get("name") or "").strip()
+        if not name:
+            return jsonify({"message": "El nombre del área de formación es obligatorio."}), 400
+        if len(name) > 120:
+            return jsonify({"message": "El nombre no puede superar los 120 caracteres."}), 400
+        if TrainingAreaModel.query.filter(db.func.lower(TrainingAreaModel.name) == name.lower()).first():
+            return jsonify({"message": "Ya existe un área de formación con ese nombre."}), 409
+        area = TrainingAreaModel(name=name)
+        db.session.add(area)
+        db.session.commit()
+        return jsonify({"id": str(area.id), "name": area.name, "coursesCount": 0}), 201
+
+    @api.put("/training-areas/<area_id>")
+    @role_required("admin")
+    def update_training_area(area_id):
+        try:
+            area = db.session.get(TrainingAreaModel, uuid.UUID(area_id))
+        except ValueError:
+            area = None
+        if area is None:
+            return jsonify({"message": "Área de formación no encontrada."}), 404
+        name = ((request.get_json(silent=True) or {}).get("name") or "").strip()
+        if not name or len(name) > 120:
+            return jsonify({"message": "Ingresa un nombre válido de hasta 120 caracteres."}), 400
+        duplicate = TrainingAreaModel.query.filter(db.func.lower(TrainingAreaModel.name) == name.lower(), TrainingAreaModel.id != area.id).first()
+        if duplicate:
+            return jsonify({"message": "Ya existe un área de formación con ese nombre."}), 409
+        area.name = name
+        db.session.commit()
+        return jsonify({"id": str(area.id), "name": area.name, "coursesCount": len(area.courses)})
+
+    @api.delete("/training-areas/<area_id>")
+    @role_required("admin")
+    def delete_training_area(area_id):
+        try:
+            area = db.session.get(TrainingAreaModel, uuid.UUID(area_id))
+        except ValueError:
+            area = None
+        if area is None:
+            return jsonify({"message": "Área de formación no encontrada."}), 404
+        if area.courses:
+            return jsonify({"message": "No puedes eliminar un área que tiene cursos asignados."}), 409
+        db.session.delete(area)
+        db.session.commit()
+        return "", 204
+
     @api.get("/courses/manage")
     @role_required("admin", "teacher")
     def manage_courses():
@@ -258,13 +313,19 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
             return jsonify({"message": "El nombre del curso es obligatorio."}), 400
         if data.get("status") == "ACTIVO":
             return jsonify({"message": "Primero crea el curso, agrega al menos un módulo y configura su examen final antes de activarlo."}), 400
+        try:
+            area = db.session.get(TrainingAreaModel, uuid.UUID(data.get("trainingAreaId"))) if data.get("trainingAreaId") else None
+        except (ValueError, TypeError):
+            area = None
+        if area is None:
+            return jsonify({"message": "Selecciona un área de formación válida."}), 400
         slug = slugify(data["name"])
         base = slug
         counter = 2
         while CourseModel.query.filter_by(slug=slug).first():
             slug = f"{base}-{counter}"
             counter += 1
-        course = CourseModel(slug=slug, name=data["name"].strip(), short_description=(data.get("shortDescription") or "").strip(), full_description=data.get("fullDescription") or "", cover_url=data.get("coverUrl") or None, modality=data.get("modality") or "Virtual", duration=data.get("duration") or "A tu ritmo", certification=data.get("certification") or "Certificado de aprobación", endorsement=data.get("endorsement") or "", price=Decimal(str(data.get("price") or 0)), discount_percent=max(0, min(100, int(data.get("discountPercent") or 0))), status=data.get("status") if data.get("status") in {"ACTIVO", "CERRADO"} else "CERRADO")
+        course = CourseModel(training_area=area, slug=slug, name=data["name"].strip(), short_description=(data.get("shortDescription") or "").strip(), full_description=data.get("fullDescription") or "", cover_url=data.get("coverUrl") or None, modality=data.get("modality") or "Virtual", duration=data.get("duration") or "A tu ritmo", certification=data.get("certification") or "Certificado de aprobación", endorsement=data.get("endorsement") or "", price=Decimal(str(data.get("price") or 0)), discount_percent=max(0, min(100, int(data.get("discountPercent") or 0))), status=data.get("status") if data.get("status") in {"ACTIVO", "CERRADO"} else "CERRADO")
         db.session.add(course)
         db.session.flush()
         course.final_exam = FinalExamModel(title="Evaluación final", instructions="Completa la evaluación para finalizar el curso.")
@@ -276,6 +337,14 @@ def create_api_blueprint(course_service: CourseService) -> Blueprint:
     def update_course(slug):
         course = CourseModel.query.filter_by(slug=slug).first_or_404()
         data = request.get_json(silent=True) or {}
+        if "trainingAreaId" in data:
+            try:
+                area = db.session.get(TrainingAreaModel, uuid.UUID(data["trainingAreaId"]))
+            except (ValueError, TypeError):
+                area = None
+            if area is None:
+                return jsonify({"message": "Selecciona un área de formación válida."}), 400
+            course.training_area = area
         for source, target in [("name", "name"), ("shortDescription", "short_description"), ("fullDescription", "full_description"), ("coverUrl", "cover_url"), ("modality", "modality"), ("duration", "duration"), ("certification", "certification"), ("endorsement", "endorsement")]:
             if source in data:
                 setattr(course, target, data[source])

@@ -130,6 +130,9 @@ export function CourseDetail() {
             </div>
 
             <h1 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">{course.name}</h1>
+            <p className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-gold">
+              Área de formación · {course.trainingArea.name}
+            </p>
             <p className="mt-4 max-w-2xl text-white/70">{course.fullDescription}</p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

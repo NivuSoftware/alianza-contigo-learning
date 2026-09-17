@@ -12,6 +12,7 @@ from app.infrastructure.persistence.models import (
     FinalExamModel,
     LessonModel,
     PaymentOrderModel,
+    TrainingAreaModel,
     UserModel,
 )
 
@@ -64,12 +65,14 @@ def build_client(upload_folder):
             role="teacher",
         )
         teacher.set_password("Seguro123")
+        area = TrainingAreaModel(name="Formación general")
         db.session.add_all(
             [
                 student,
                 admin,
                 teacher,
                 CourseModel(
+                    training_area=area,
                     slug="curso-tarjeta",
                     name="Curso tarjeta",
                     short_description="Curso activo",
@@ -114,6 +117,7 @@ def build_client(upload_folder):
                     ),
                 ),
                 CourseModel(
+                    training_area=area,
                     slug="curso-transferencia",
                     name="Curso transferencia",
                     short_description="Curso activo",

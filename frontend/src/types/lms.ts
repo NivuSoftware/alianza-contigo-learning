@@ -45,6 +45,7 @@ export interface LmsCourse {
   id: string;
   slug: string;
   name: string;
+  trainingArea: TrainingArea;
   shortDescription: string;
   fullDescription: string;
   coverUrl?: string;
@@ -61,4 +62,9 @@ export interface LmsCourse {
   hasFinalExam: boolean;
   modules?: ModuleDraft[];
   finalExam?: FinalExamDraft;
+}
+export interface TrainingArea {
+  id: string;
+  name: string;
+  coursesCount?: number;
 }

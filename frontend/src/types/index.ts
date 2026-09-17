@@ -27,6 +27,7 @@ export interface Course {
   id: string;
   slug: string;
   name: string;
+  trainingArea: { id: string; name: string };
   shortDescription: string;
   fullDescription: string;
   endorsements: Endorsement[];

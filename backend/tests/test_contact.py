@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from app import create_app
 from app.extensions import db
-from app.infrastructure.persistence.models import CourseModel
+from app.infrastructure.persistence.models import CourseModel, TrainingAreaModel
 
 
 class TestConfig:
@@ -17,7 +17,9 @@ def make_client():
     app = create_app(TestConfig)
     with app.app_context():
         db.create_all()
+        area = TrainingAreaModel(name="Formación general")
         db.session.add(CourseModel(
+            training_area=area,
             slug="liderazgo",
             name="Liderazgo",
             short_description="Programa de liderazgo",

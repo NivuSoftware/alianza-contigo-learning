@@ -5,10 +5,20 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.extensions import db
 
 
+class TrainingAreaModel(db.Model):
+    __tablename__ = "training_areas"
+
+    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(120), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    courses = db.relationship("CourseModel", back_populates="training_area")
+
+
 class CourseModel(db.Model):
     __tablename__ = "courses"
 
     id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+    training_area_id = db.Column(db.Uuid, db.ForeignKey("training_areas.id", ondelete="RESTRICT"), nullable=False, index=True)
     slug = db.Column(db.String(160), nullable=False, unique=True, index=True)
     name = db.Column(db.String(180), nullable=False)
     short_description = db.Column(db.Text, nullable=False)
@@ -25,6 +35,7 @@ class CourseModel(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     modules = db.relationship("CourseModuleModel", back_populates="course", cascade="all, delete-orphan", order_by="CourseModuleModel.position")
     final_exam = db.relationship("FinalExamModel", back_populates="course", cascade="all, delete-orphan", uselist=False)
+    training_area = db.relationship("TrainingAreaModel", back_populates="courses")
 
 
 class CourseModuleModel(db.Model):

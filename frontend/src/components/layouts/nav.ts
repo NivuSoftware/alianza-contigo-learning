@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   GraduationCap,
   Home,
+  Tags,
   UserRound,
   Users,
 } from "lucide-react";
@@ -18,6 +19,7 @@ export const studentNav = [
 export const adminNav = [
   { label: "Dashboard", to: "/admin", icon: Home },
   { label: "Programas", to: "/admin/courses", icon: BookOpen },
+  { label: "Áreas de formación", to: "/admin/training-areas", icon: Tags },
   { label: "Estudiantes", to: "/admin/students", icon: Users },
   { label: "Evaluaciones", to: "/admin/evaluations", icon: ClipboardCheck },
   { label: "Pagos e ingresos", to: "/admin/enrollments", icon: GraduationCap },

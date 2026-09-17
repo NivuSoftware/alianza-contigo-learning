@@ -12,24 +12,38 @@ export function CoursesPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("Todos");
   const filters = useMemo(
-    () => ["Todos", ...new Set(courses.flatMap((course) => course.endorsements))],
+    () => ["Todos", ...new Set(courses.map((course) => course.trainingArea.name))],
     [courses],
   );
 
   const list = courses.filter((c) => {
     const matchQuery = c.name.toLowerCase().includes(query.toLowerCase());
-    const matchFilter = filter === "Todos" || c.endorsements.some((e) => e === filter);
+    const matchFilter = filter === "Todos" || c.trainingArea.name === filter;
     return matchQuery && matchFilter;
   });
+  const groupedCourses = useMemo(
+    () =>
+      Object.entries(
+        list.reduce<Record<string, typeof list>>((groups, course) => {
+          (groups[course.trainingArea.name] ||= []).push(course);
+          return groups;
+        }, {}),
+      ),
+    [list],
+  );
 
   return (
     <PublicLayout>
       <section className="border-b border-border bg-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="gold-rule" />
-          <h1 className="mt-4 font-display text-4xl font-semibold text-navy">Catálogo de Programas</h1>
+          <h1 className="mt-4 font-display text-4xl font-semibold text-navy">
+            Catálogo de Programas
+          </h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Encuentra la formación que se adapte a tus objetivos profesionales. Conoce sus contenidos, metodología, duración, certificación y ruta de aprendizaje antes de comenzar.
+            Encuentra la formación que se adapte a tus objetivos profesionales. Conoce sus
+            contenidos, metodología, duración, certificación y ruta de aprendizaje antes de
+            comenzar.
           </p>
         </div>
       </section>
@@ -64,10 +78,26 @@ export function CoursesPage() {
             Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="h-[430px] animate-pulse rounded-2xl bg-muted" />
             ))}
-          {list.map((c) => (
-            <CourseCard key={c.id} course={c} />
-          ))}
         </div>
+        {!loading &&
+          groupedCourses.map(([area, areaCourses]) => (
+            <section key={area} className="mt-10" aria-labelledby={`area-${area}`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-dark">
+                Área de formación
+              </p>
+              <h2
+                id={`area-${area}`}
+                className="mt-1 font-display text-2xl font-semibold text-navy"
+              >
+                {area}
+              </h2>
+              <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {(areaCourses || []).map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            </section>
+          ))}
 
         {error && (
           <div className="mt-8 rounded-xl bg-red-50 p-5 text-sm text-red-800">
@@ -83,7 +113,7 @@ export function CoursesPage() {
             <EmptyState
               icon={Search}
               title="No encontramos programas"
-              description="Prueba con otro término de búsqueda o cambia el filtro de aval."
+              description="Prueba con otro término de búsqueda o cambia el área de formación."
             />
           </div>
         )}
