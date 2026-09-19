@@ -104,12 +104,12 @@ export function ContactPage() {
           {[
             {
               icon: Mail,
-              label: "admisiones@alianzacontigo.ec",
-              href: "mailto:admisiones@alianzacontigo.ec",
+              label: "admisiones@alianzacontigoeducacion.com",
+              href: "mailto:admisiones@alianzacontigoeducacion.com",
             },
             { icon: Phone, label: ACADEMY_PHONE_DISPLAY, href: `tel:${ACADEMY_PHONE_E164}` },
             { icon: MessageCircle, label: "Escríbenos por WhatsApp", href: ACADEMY_WHATSAPP_URL },
-            { icon: MapPin, label: "Cuenca, Ecuador", href: undefined },
+            { icon: MapPin, label: "Cuenca - Ecuador", href: undefined },
           ].map(({ icon: Icon, label, href }) => {
             return (
               <div className="flex items-center gap-4" key={label}>

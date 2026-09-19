@@ -231,7 +231,7 @@ function Footer() {
         <div>
           <h4 className="font-display text-sm font-semibold text-white">Contacto</h4>
           <ul className="mt-4 space-y-2 text-sm">
-            <li>info@alianzacontigo.edu.ec</li>
+            <li>info@alianzacontigoeducacion.com</li>
             <li>
               <a href={`tel:${ACADEMY_PHONE_E164}`} className="transition-colors hover:text-white">
                 {ACADEMY_PHONE_DISPLAY}
@@ -248,7 +248,7 @@ function Footer() {
               </a>
             </li>
             <li>Juan José Flores y Guapondelig – Edificio Puntosol</li>
-            <li>Cuenca Ecuador</li>
+            <li>Cuenca - Ecuador</li>
           </ul>
         </div>
       </div>
