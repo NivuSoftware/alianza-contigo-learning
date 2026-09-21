@@ -15,7 +15,6 @@ import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { CourseCard } from "@/components/shared/CourseCard";
 import { Button } from "@/components/ui/button";
 import { usePublicCourses } from "@/hooks/use-public-courses";
-import heroImage from "@/assets/hero.jpg";
 
 const highlights = [
   { icon: GraduationCap, label: "Aprendizaje aplicado" },
@@ -85,10 +84,10 @@ export function Landing() {
           <div className="relative">
             <div className="absolute -bottom-6 -left-6 hidden h-40 w-40 rounded-2xl border border-gold/30 sm:block" />
             <img
-              src={heroImage}
+              src="/assets/hero.png"
               alt="Profesionales en una capacitación empresarial de Alianza Contigo"
-              width={1408}
-              height={1008}
+              width={1672}
+              height={941}
               className="relative w-full rounded-2xl object-cover shadow-[var(--shadow-lift)]"
             />
             <div className="surface-card absolute -bottom-8 left-4 hidden w-56 p-4 sm:block">
