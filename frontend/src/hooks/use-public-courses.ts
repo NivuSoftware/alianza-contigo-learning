@@ -6,7 +6,14 @@ import type { LessonType as LmsLessonType, LmsCourse } from "@/types/lms";
 const currency = new Intl.NumberFormat("es-EC", { style: "currency", currency: "USD" });
 
 function lessonType(type: LmsLessonType): LessonType {
-  if (type === "video" || type === "pdf" || type === "text") return type;
+  if (
+    type === "video" ||
+    type === "pdf" ||
+    type === "image" ||
+    type === "interactive" ||
+    type === "text"
+  )
+    return type;
   return type === "file" ? "resource" : "document";
 }
 

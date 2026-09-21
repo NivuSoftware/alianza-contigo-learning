@@ -11,6 +11,8 @@ import {
   Download,
   ClipboardCheck,
   CheckCircle2,
+  BrainCircuit,
+  Image,
 } from "lucide-react";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { CourseBadge } from "@/components/shared/CourseBadge";
@@ -44,6 +46,27 @@ const includes = [
   { icon: ClipboardCheck, label: "Evaluación final" },
   { icon: GraduationCap, label: "Certificado de aprobación" },
 ];
+
+function ActivityIcon({ type }: { type: Course["modules"][number]["lessons"][number]["type"] }) {
+  const Icon =
+    type === "video"
+      ? PlayCircle
+      : type === "interactive"
+        ? BrainCircuit
+        : type === "image"
+          ? Image
+          : FileText;
+  return <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />;
+}
+
+function activityName(type: Course["modules"][number]["lessons"][number]["type"]) {
+  if (type === "video") return "Video";
+  if (type === "interactive") return "Actividad interactiva";
+  if (type === "image") return "Imagen";
+  if (type === "pdf") return "Documento PDF";
+  if (type === "resource") return "Recurso";
+  return "Lectura";
+}
 
 export function CourseDetail() {
   const { slug = "" } = useParams();
@@ -253,16 +276,25 @@ export function CourseDetail() {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <ul className="space-y-2 pl-1">
-                    {m.lessons.map((l) => (
+                  <ul className="space-y-3 pl-1">
+                    {m.lessons.map((l, lessonIndex) => (
                       <li
                         key={l.id}
-                        className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/50"
+                        className="rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/50"
                       >
-                        <span className="flex min-w-0 items-center gap-2.5">
+                        <div className="flex min-w-0 items-start gap-2.5">
                           <BookOpen className="h-4 w-4 shrink-0 text-gold" />
-                          <span className="truncate text-navy">{l.title}</span>
-                        </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-navy">
+                              Lección {lessonIndex + 1}: {l.title}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">1 actividad</p>
+                            <div className="mt-2 flex items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                              <ActivityIcon type={l.type} />
+                              <span>{activityName(l.type)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>

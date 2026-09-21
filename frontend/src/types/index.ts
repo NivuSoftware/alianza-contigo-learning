@@ -2,7 +2,8 @@ export type Role = "admin" | "teacher" | "student";
 
 export type Endorsement = string;
 
-export type LessonType = "video" | "pdf" | "document" | "text" | "resource" | "exam";
+export type LessonType =
+  "video" | "pdf" | "image" | "interactive" | "document" | "text" | "resource" | "exam";
 export type LessonState = "completed" | "current" | "pending" | "locked";
 
 export interface Lesson {
