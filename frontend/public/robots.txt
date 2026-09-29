@@ -1,14 +1,47 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# Alianza Contigo Educación — https://alianzacontigoeducacion.com
 
 User-agent: *
 Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /profesor
+Disallow: /pagar
+Disallow: /acceso-administrativo
+Disallow: /acceso-profesores
+Disallow: /olvide-mi-contrasena
+Disallow: /restablecer-contrasena
+Disallow: /api/
+Allow: /api/v1/uploads/
+
+# Buscadores y asistentes de IA (GEO): acceso explícito al contenido público
+User-agent: Googlebot
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: CCBot
+User-agent: meta-externalagent
+User-agent: facebookexternalhit
+User-agent: Twitterbot
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /profesor
+Disallow: /pagar
+Disallow: /acceso-administrativo
+Disallow: /acceso-profesores
+Disallow: /olvide-mi-contrasena
+Disallow: /restablecer-contrasena
+Disallow: /api/
+Allow: /api/v1/uploads/
+
+Sitemap: https://alianzacontigoeducacion.com/sitemap.xml

@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { usePublicCourses } from "@/hooks/use-public-courses";
 import { api, ApiError } from "@/lib/api";
 import { ACADEMY_PHONE_DISPLAY, ACADEMY_PHONE_E164, ACADEMY_WHATSAPP_URL } from "@/lib/contact";
+import { Seo } from "@/components/seo/Seo";
+import { breadcrumbJsonLd, ORGANIZATION_ID, SITE_URL } from "@/lib/seo";
 
 const Header = ({ title, text }: { title: string; text: string }) => (
   <section className="navy-gradient text-white">
@@ -29,6 +31,25 @@ const Header = ({ title, text }: { title: string; text: string }) => (
 export function AboutPage() {
   return (
     <PublicLayout>
+      <Seo
+        title="Nosotros: educación continua en línea desde Cuenca, Ecuador"
+        description="Conoce Alianza Contigo Educación: educación continua y cursos en línea para fortalecer competencias, actualizar conocimientos y crecer profesionalmente con certificado."
+        path="/nosotros"
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            url: `${SITE_URL}/nosotros`,
+            name: "Sobre Alianza Contigo Educación",
+            inLanguage: "es-EC",
+            about: { "@id": ORGANIZATION_ID },
+          },
+          breadcrumbJsonLd([
+            { name: "Inicio", path: "/" },
+            { name: "Nosotros", path: "/nosotros" },
+          ]),
+        ]}
+      />
       <Header
         title="Educación que transforma aprendizaje en oportunidades."
         text="En Alianza Contigo desarrollamos experiencias de educación continua para personas que buscan fortalecer sus competencias, actualizar sus conocimientos y seguir creciendo profesionalmente."
@@ -95,6 +116,25 @@ export function ContactPage() {
 
   return (
     <PublicLayout>
+      <Seo
+        title="Contacto y admisiones"
+        description="Contacta a Alianza Contigo Educación en Cuenca, Ecuador. Escríbenos por WhatsApp al +593 99 044 8031 o a admisiones@alianzacontigoeducacion.com y te orientamos sobre nuestros cursos en línea."
+        path="/contacto"
+        jsonLd={[
+          {
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            url: `${SITE_URL}/contacto`,
+            name: "Contacto Alianza Contigo Educación",
+            inLanguage: "es-EC",
+            about: { "@id": ORGANIZATION_ID },
+          },
+          breadcrumbJsonLd([
+            { name: "Inicio", path: "/" },
+            { name: "Contacto", path: "/contacto" },
+          ]),
+        ]}
+      />
       <Header
         title="¿Qué te gustaría aprender o fortalecer?"
         text="Cuéntanos que quieres aprender o fortalecer. Nuestro equipo puede orientarte para identificar el programa que mejor se adapte a tus objetivos."

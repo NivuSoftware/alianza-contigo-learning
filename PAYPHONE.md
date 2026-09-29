@@ -7,8 +7,8 @@ La aplicación PayPhone debe ser de tipo **WEB**. En PayPhone Developer registra
 
 Para producción, si el dominio definitivo es el del ejemplo de despliegue, usa:
 
-- **Dominio web:** `https://alianzacontigo.nivusoftware.com`
-- **URL de respuesta:** `https://alianzacontigo.nivusoftware.com/pagar`
+- **Dominio web:** `https://alianzacontigoeducacion.com`
+- **URL de respuesta:** `https://alianzacontigoeducacion.com/pagar`
 
 Si el dominio público es otro, reemplázalo en ambos campos. PayPhone solo permite cargar la Cajita desde los dominios autorizados. Selecciona **Producción** en la aplicación PayPhone para realizar cobros bancarios reales; el ambiente de pruebas no cobra. [Configuración oficial](https://docs.payphone.app/configuracion-de-ambiente-y-credenciales).
 

@@ -38,6 +38,8 @@ import { toPublicCourse } from "@/hooks/use-public-courses";
 import type { Course } from "@/types";
 import type { LmsCourse } from "@/types/lms";
 import { useAuth } from "@/contexts/AuthContext";
+import { Seo } from "@/components/seo/Seo";
+import { breadcrumbJsonLd, courseDescription, courseJsonLd } from "@/lib/seo";
 
 const includes = [
   { icon: PlayCircle, label: "Clases en video" },
@@ -117,6 +119,20 @@ export function CourseDetail() {
 
   return (
     <PublicLayout>
+      <Seo
+        title={`${course.name}: curso en línea con certificado`}
+        description={courseDescription(course)}
+        path={`/courses/${course.slug}`}
+        image={course.image || undefined}
+        jsonLd={[
+          courseJsonLd(course),
+          breadcrumbJsonLd([
+            { name: "Inicio", path: "/" },
+            { name: "Programas", path: "/courses" },
+            { name: course.name, path: `/courses/${course.slug}` },
+          ]),
+        ]}
+      />
       {/* HEADER */}
       <section className="navy-gradient relative overflow-hidden text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-gold/10 blur-3xl" />

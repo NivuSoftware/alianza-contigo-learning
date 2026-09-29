@@ -14,6 +14,16 @@
 		respond 404
 	}
 
+	handle /sitemap.xml {
+		rewrite * /api/v1/seo/sitemap.xml
+		reverse_proxy backend:5000
+	}
+
+	handle /llms.txt {
+		rewrite * /api/v1/seo/llms.txt
+		reverse_proxy backend:5000
+	}
+
 	handle /api/v1/uploads/* {
 		uri strip_prefix /api/v1/uploads
 		root * /srv/uploads
@@ -46,4 +56,8 @@
 		output stdout
 		format console
 	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
 }

@@ -1,0 +1,28 @@
+{
+  "name": "Alianza Contigo Educación Continua",
+  "short_name": "Alianza Contigo",
+  "description": "Educación continua y cursos en línea con certificado en Ecuador.",
+  "lang": "es-EC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#071c3a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "64x64"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    },
+    {
+      "src": "/assets/logo-alianza-contigo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ]
+}

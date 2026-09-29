@@ -10,6 +10,7 @@ from app.application.services.course_service import CourseService
 from app.presentation.auth_api import auth_api
 from app.presentation.payment_api import payment_api
 from app.presentation.exam_api import exam_api
+from app.presentation.seo_api import seo_api
 from app.infrastructure.demo_seed import seed_demo_courses
 
 
@@ -44,6 +45,7 @@ def create_app(config_object=None) -> Flask:
     app.register_blueprint(auth_api, url_prefix="/api/v1/auth")
     app.register_blueprint(payment_api, url_prefix="/api/v1/payments")
     app.register_blueprint(exam_api, url_prefix="/api/v1/exams")
+    app.register_blueprint(seo_api, url_prefix="/api/v1/seo")
 
     @app.cli.command("create-admin")
     def create_admin():

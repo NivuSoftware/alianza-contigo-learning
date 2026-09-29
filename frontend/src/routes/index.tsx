@@ -15,6 +15,8 @@ import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { CourseCard } from "@/components/shared/CourseCard";
 import { Button } from "@/components/ui/button";
 import { usePublicCourses } from "@/hooks/use-public-courses";
+import { Seo } from "@/components/seo/Seo";
+import { coursesItemListJsonLd } from "@/lib/seo";
 
 const highlights = [
   { icon: GraduationCap, label: "Aprendizaje aplicado" },
@@ -44,6 +46,12 @@ export function Landing() {
   const { courses, loading } = usePublicCourses();
   return (
     <PublicLayout>
+      <Seo
+        title="Alianza Contigo Educación | Educación continua y cursos en línea con certificado en Ecuador"
+        description="Alianza Contigo Educación: plataforma de educación en línea y educación continua en Ecuador. Cursos virtuales y programas de capacitación profesional con certificado y aval institucional. Aprende a tu ritmo."
+        path="/"
+        jsonLd={courses.length ? coursesItemListJsonLd(courses) : undefined}
+      />
       {/* HERO */}
       <section className="relative overflow-hidden bg-white">
         <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-accent blur-3xl" />
@@ -84,10 +92,12 @@ export function Landing() {
           <div className="relative">
             <div className="absolute -bottom-6 -left-6 hidden h-40 w-40 rounded-2xl border border-gold/30 sm:block" />
             <img
-              src="/assets/hero.png"
-              alt="Profesionales en una capacitación empresarial de Alianza Contigo"
+              src="/assets/hero.webp"
+              alt="Profesionales en una capacitación de educación continua de Alianza Contigo Educación"
               width={1672}
               height={941}
+              fetchPriority="high"
+              decoding="async"
               className="relative w-full rounded-2xl object-cover shadow-[var(--shadow-lift)]"
             />
             <div className="surface-card absolute -bottom-8 left-4 hidden w-56 p-4 sm:block">

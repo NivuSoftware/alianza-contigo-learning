@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePublicCourses } from "@/hooks/use-public-courses";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Seo } from "@/components/seo/Seo";
+import { breadcrumbJsonLd, coursesItemListJsonLd } from "@/lib/seo";
 
 export function CoursesPage() {
   const { courses, loading, error, reload } = usePublicCourses();
@@ -34,6 +36,18 @@ export function CoursesPage() {
 
   return (
     <PublicLayout>
+      <Seo
+        title="Cursos en línea y programas de educación continua con certificado"
+        description="Catálogo de cursos virtuales y programas de educación continua de Alianza Contigo Educación. Capacitación profesional en línea con certificado y aval institucional en Ecuador."
+        path="/courses"
+        jsonLd={[
+          breadcrumbJsonLd([
+            { name: "Inicio", path: "/" },
+            { name: "Programas", path: "/courses" },
+          ]),
+          ...(courses.length ? [coursesItemListJsonLd(courses)] : []),
+        ]}
+      />
       <section className="border-b border-border bg-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="gold-rule" />

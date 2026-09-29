@@ -6,6 +6,7 @@ import { CourseDetail } from "@/routes/courses.$slug";
 import { AboutPage, ContactPage } from "@/pages/PublicInfoPages";
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from "@/pages/AuthPages";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { Seo } from "@/components/seo/Seo";
 import { TeacherDashboard, TeacherSection } from "@/pages/TeacherPages";
 import { TeacherManagementPage } from "@/pages/TeacherManagementPage";
 import { TeacherCoursePage } from "@/pages/TeacherCoursePage";
@@ -43,13 +44,87 @@ export function App() {
       <Route path="/courses/:slug" element={<CourseDetail />} />
       <Route path="/nosotros" element={<AboutPage />} />
       <Route path="/contacto" element={<ContactPage />} />
-      <Route path="/pagar" element={<PayphoneResultPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/olvide-mi-contrasena" element={<ForgotPasswordPage />} />
-      <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
-      <Route path="/acceso-administrativo" element={<LoginPage role="admin" />} />
-      <Route path="/acceso-profesores" element={<LoginPage role="teacher" />} />
+      <Route
+        path="/pagar"
+        element={
+          <>
+            <Seo
+              title="Resultado del pago"
+              description="Confirmación de pago de inscripción."
+              noindex
+            />
+            <PayphoneResultPage />
+          </>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <>
+            <Seo
+              title="Aula virtual: iniciar sesión"
+              description="Ingresa al aula virtual de Alianza Contigo Educación para continuar tus cursos en línea, rendir evaluaciones y descargar tus certificados."
+            />
+            <LoginPage />
+          </>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <>
+            <Seo
+              title="Crear cuenta de estudiante"
+              description="Regístrate gratis en Alianza Contigo Educación y accede a programas de educación continua y cursos en línea con certificado en Ecuador."
+            />
+            <RegisterPage />
+          </>
+        }
+      />
+      <Route
+        path="/olvide-mi-contrasena"
+        element={
+          <>
+            <Seo
+              title="Recuperar contraseña"
+              description="Recupera el acceso a tu cuenta."
+              noindex
+            />
+            <ForgotPasswordPage />
+          </>
+        }
+      />
+      <Route
+        path="/restablecer-contrasena"
+        element={
+          <>
+            <Seo
+              title="Restablecer contraseña"
+              description="Define una nueva contraseña."
+              noindex
+            />
+            <ResetPasswordPage />
+          </>
+        }
+      />
+      <Route
+        path="/acceso-administrativo"
+        element={
+          <>
+            <Seo title="Acceso administrativo" description="Acceso restringido." noindex />
+            <LoginPage role="admin" />
+          </>
+        }
+      />
+      <Route
+        path="/acceso-profesores"
+        element={
+          <>
+            <Seo title="Portal de profesores" description="Acceso restringido." noindex />
+            <LoginPage role="teacher" />
+          </>
+        }
+      />
 
       <Route
         path="/app"
@@ -226,6 +301,11 @@ export function App() {
         path="*"
         element={
           <main className="grid min-h-screen place-items-center bg-background p-6 text-center">
+            <Seo
+              title="Página no encontrada"
+              description="La página solicitada no existe."
+              noindex
+            />
             <div>
               <p className="font-display text-7xl font-semibold text-navy">404</p>
               <h1 className="mt-4 text-xl font-semibold text-navy">Página no encontrada</h1>
